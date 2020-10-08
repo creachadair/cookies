@@ -9,7 +9,11 @@ import (
 	"log"
 	"math"
 	"time"
+	"unicode/utf16"
 )
+
+// References:
+//   https://opensource.apple.com/source/CF/CF-550/CFBinaryPList.c
 
 // A Handler provides callbacks to handle objects from a property list.  If a
 // handler method reports an error, that error is propagated to the caller.
@@ -50,8 +54,11 @@ const (
 	// TBytes represents arbitrary bytes. Its datum is a []byte.
 	TBytes
 
-	// TString represents a string value. Its datum is a string.
+	// TString represents an ASCII string value. Its datum is a string.
 	TString
+
+	// TUnicode represents a UTF-16 string. Its datum is a []rune.
+	TUnicode
 
 	// TUID represents a UID value. Its datum is a []byte.
 	TUID
@@ -171,7 +178,14 @@ func Parse(data []byte, h Handler) error {
 			return h.Element(TString, string(data[start:end]))
 
 		case 6: // Unicode string
-			// TODO
+			size, shift := sizeAndShift(tag, data[off+1:])
+			start := off + 1 + shift
+			runes := make([]uint16, size)
+			for i := 0; i < size; i++ {
+				runes[i] = binary.BigEndian.Uint16(data[start:])
+				start += 2
+			}
+			return h.Element(TUnicode, utf16.Decode(runes))
 
 		case 8: // UID
 			size, shift := sizeAndShift(tag, data[off+1:])
