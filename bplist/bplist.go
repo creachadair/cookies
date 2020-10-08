@@ -94,6 +94,8 @@ func (t Type) String() string {
 		return "bytes"
 	case TString:
 		return "string"
+	case TUnicode:
+		return "unicode"
 	case TUID:
 		return "uid"
 	}
