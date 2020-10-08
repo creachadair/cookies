@@ -193,9 +193,9 @@ func Parse(data []byte, h Handler) error {
 			end := start + size
 			return h.Element(TUID, data[start:end])
 
-		case 10, 12: // array or set
+		case 10, 11, 12: // array or set
 			coll := Array
-			if sel == 12 {
+			if sel == 11 || sel == 12 {
 				coll = Set
 			}
 			size, shift := sizeAndShift(tag, data[off+1:])
