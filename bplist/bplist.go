@@ -54,7 +54,7 @@ const (
 	// TBytes represents arbitrary bytes. Its datum is a []byte.
 	TBytes
 
-	// TString represents an ASCII string value. Its datum is a string.
+	// TString represents a UTF-8 string value. Its datum is a string.
 	TString
 
 	// TUnicode represents a UTF-16 string. Its datum is a []rune.
@@ -171,7 +171,7 @@ func Parse(data []byte, h Handler) error {
 			end := start + size
 			return h.Element(TBytes, data[start:end])
 
-		case 5: // ASCII string
+		case 5, 7: // ASCII or UTF-8 string
 			size, shift := sizeAndShift(tag, data[off+1:])
 			start := off + 1 + shift
 			end := start + size
