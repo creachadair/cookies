@@ -16,11 +16,32 @@ package bplist_test
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"testing"
 
 	"github.com/creachadair/cookies/bplist"
 )
+
+var testFile = flag.String("input", "", "Manual test input file")
+
+func TestManual(t *testing.T) {
+	if *testFile == "" {
+		t.Skip("Skipping because no -input file is given")
+	}
+	data, err := ioutil.ReadFile(*testFile)
+	if err != nil {
+		t.Fatalf("Reading input: %v", err)
+	}
+	if err := bplist.Parse(data, testHandler{
+		log: t.Logf,
+		buf: ioutil.Discard,
+	}); err != nil {
+		t.Errorf("Parse failed: %v", err)
+	}
+}
 
 func TestBasic(t *testing.T) {
 	const testInput = "bplist00\xd1\x01\x02_\x10\x18NSHTTPCookieAcceptPolicy\x10" +
@@ -42,10 +63,11 @@ func TestBasic(t *testing.T) {
 
 type testHandler struct {
 	log func(string, ...interface{})
-	buf *bytes.Buffer
+	buf io.Writer
 }
 
 func (h testHandler) Version(s string) error {
+	h.log("Version %q", s)
 	fmt.Fprintf(h.buf, "V%q", s)
 	return nil
 }
