@@ -16,37 +16,88 @@ import (
 type Handler interface {
 	// Called for the version string, e.g., "00".
 	Version(string) error
-	// Called for a null value.
-	Null() error
-	// Called for a Boolean value.
-	Bool(bool) error
-	// Called for an integer value.
-	Int(int64) error
-	// Called for a floating-point value.
-	Float(float64) error
-	// Called for a timestamp.
-	Time(time.Time) error
-	// Called for a byte array.
-	Bytes([]byte) error
-	// Called for a string.
-	String(string) error
-	// Called for a UID.
-	UID([]byte) error
 
-	// Called to signal the beginning of an array of n elements.
-	BeginArray(n int) error
-	// Called to signal the end of an array.
-	EndArray() error
+	// Called for primitive data elements. The concrete type of the datum
+	// depends on the Type; see the comments for the Type enumerators.
+	Element(typ Type, datum interface{}) error
 
-	// Called to signal the beginning of a dictionary of n pairs.
-	BeginDict(n int) error
-	// Called to signal the end of a dictionary.
-	EndDict() error
+	// Called to open a new collection of the given type with n elements.
+	Open(typ Collection, n int) error
 
-	// Called to signal the beginning of a set of n elements.
-	BeginSet(n int) error
-	// Called to signal the end of a set.
-	EndSet() error
+	// Called to close the latest collection of the given type.
+	Close(Collection) error
+}
+
+// Type enumerates the types of primitive elements in the property list.
+type Type int
+
+const (
+	// TNull represents the singleton null value. Its datum is nil.
+	TNull Type = iota
+
+	// TBool represents a Boolean value. Its datum is a bool.
+	TBool
+
+	// TInteger represents an integer value. Its datum is an int64.
+	TInteger
+
+	// TFloat represents a floating-point value. Its datum is a float64.
+	TFloat
+
+	// TTime represents a timestamp. Its datum is a time.Time in UTC.
+	TTime
+
+	// TBytes represents arbitrary bytes. Its datum is a []byte.
+	TBytes
+
+	// TString represents a string value. Its datum is a string.
+	TString
+
+	// TUID represents a UID value. Its datum is a []byte.
+	TUID
+)
+
+func (t Type) String() string {
+	switch t {
+	case TNull:
+		return "null"
+	case TBool:
+		return "bool"
+	case TInteger:
+		return "int"
+	case TFloat:
+		return "float"
+	case TTime:
+		return "time"
+	case TBytes:
+		return "bytes"
+	case TString:
+		return "string"
+	case TUID:
+		return "uid"
+	}
+	return "unknown"
+}
+
+// Collection enumerates the types of container elements.
+type Collection int
+
+const (
+	Array Collection = iota + 1 // an ordered sequence
+	Set                         // an unordered group
+	Dict                        // a collection of key/value pairs
+)
+
+func (c Collection) String() string {
+	switch c {
+	case Array:
+		return "array"
+	case Set:
+		return "set"
+	case Dict:
+		return "dict"
+	}
+	return "unknown"
 }
 
 func Parse(data []byte, h Handler) error {
@@ -81,53 +132,60 @@ func Parse(data []byte, h Handler) error {
 		off := offsets[id]
 		tag := data[off]
 
-		switch tag >> 4 {
+		switch sel := tag >> 4; sel {
 		case 0: // null, bool, fill
 			switch tag & 0xf {
 			case 0:
-				return h.Null()
+				return h.Element(TNull, nil)
 			case 8:
-				return h.Bool(false)
+				return h.Element(TBool, false)
 			case 9:
-				return h.Bool(true)
+				return h.Element(TBool, true)
 			}
 
 		case 1: // int
 			size := 1 << (tag & 0xf)
-			return h.Int(parseInt(data[off+1 : off+1+size]))
+			return h.Element(TInteger, parseInt(data[off+1:off+1+size]))
 
 		case 2: // real
 			size := 1 << (tag & 0xf)
-			return h.Float(parseFloat(data[off+1 : off+1+size]))
+			return h.Element(TFloat, parseFloat(data[off+1:off+1+size]))
 
 		case 3: // date
 			if tag&0xf == 3 {
 				const macEpoch = 978307200 // 01-Jan-2001
 				sec := parseFloat(data[off+1 : off+9])
-				return h.Time(time.Unix(int64(sec)+macEpoch, 0).In(time.UTC))
+				return h.Element(TTime, time.Unix(int64(sec)+macEpoch, 0).In(time.UTC))
 			}
 
 		case 4: // data
 			size, shift := sizeAndShift(tag, data[off+1:])
 			start := off + 1 + shift
 			end := start + size
-			return h.Bytes(data[start:end])
+			return h.Element(TBytes, data[start:end])
 
 		case 5: // ASCII string
 			size, shift := sizeAndShift(tag, data[off+1:])
 			start := off + 1 + shift
 			end := start + size
-			return h.String(string(data[start:end]))
+			return h.Element(TString, string(data[start:end]))
 
 		case 6: // Unicode string
 			// TODO
 
 		case 8: // UID
-			// TODO
-
-		case 10: // array
 			size, shift := sizeAndShift(tag, data[off+1:])
-			if err := h.BeginArray(size); err != nil {
+			start := off + 1 + shift
+			end := start + size
+			return h.Element(TUID, data[start:end])
+
+		case 10, 12: // array or set
+			coll := Array
+			if sel == 12 {
+				coll = Set
+			}
+			size, shift := sizeAndShift(tag, data[off+1:])
+			if err := h.Open(coll, size); err != nil {
 				return err
 			}
 			start := off + 1 + shift
@@ -138,26 +196,11 @@ func Parse(data []byte, h Handler) error {
 				}
 				start += t.RefBytes
 			}
-			return h.EndArray()
-
-		case 12: // set
-			size, shift := sizeAndShift(tag, data[off+1:])
-			if err := h.BeginSet(size); err != nil {
-				return err
-			}
-			start := off + 1 + shift
-			for i := 0; i < size; i++ {
-				ref := int(parseInt(data[start : start+t.RefBytes]))
-				if err := parseObj(ref); err != nil {
-					return err
-				}
-				start += t.RefBytes
-			}
-			return h.EndSet()
+			return h.Close(coll)
 
 		case 13: // dict
 			size, shift := sizeAndShift(tag, data[off+1:])
-			if err := h.BeginDict(size); err != nil {
+			if err := h.Open(Dict, size); err != nil {
 				return err
 			}
 			keyStart := off + 1 + shift
@@ -175,7 +218,7 @@ func Parse(data []byte, h Handler) error {
 				}
 				valStart += t.RefBytes
 			}
-			return h.EndDict()
+			return h.Close(Dict)
 		}
 		return fmt.Errorf("unrecognized tag %02x", tag)
 	}

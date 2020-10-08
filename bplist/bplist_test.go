@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/creachadair/cookies/bplist"
 )
@@ -20,7 +19,7 @@ func TestBasic(t *testing.T) {
 	}); err != nil {
 		t.Errorf("Parse failed; %v", err)
 	}
-	const want = `V"00"1<"NSHTTPCookieAcceptPolicy"2>`
+	const want = `V"00"<dict size=1>(string=NSHTTPCookieAcceptPolicy)(int=2)</dict>`
 	if got := buf.String(); got != want {
 		t.Errorf("Parse result: got %s, want %s", got, want)
 	}
@@ -30,18 +29,26 @@ type testHandler struct {
 	buf *bytes.Buffer
 }
 
-func (h testHandler) Version(s string) error { fmt.Fprintf(h.buf, "V%q", s); return nil }
-func (h testHandler) Null() error            { h.buf.WriteString("null"); return nil }
-func (h testHandler) Bool(tf bool) error     { fmt.Fprint(h.buf, tf); return nil }
-func (h testHandler) Int(z int64) error      { fmt.Fprintf(h.buf, "%d", z); return nil }
-func (h testHandler) Float(v float64) error  { fmt.Fprint(h.buf, v); return nil }
-func (h testHandler) Time(t time.Time) error { fmt.Fprint(h.buf, t); return nil }
-func (h testHandler) Bytes(v []byte) error   { fmt.Fprintf(h.buf, "[%d]", len(v)); return nil }
-func (h testHandler) String(v string) error  { fmt.Fprintf(h.buf, "%q", v); return nil }
-func (h testHandler) UID(v []byte) error     { fmt.Fprintf(h.buf, "U[%d]", len(v)); return nil }
-func (h testHandler) BeginArray(n int) error { fmt.Fprintf(h.buf, "%d[", n); return nil }
-func (h testHandler) EndArray() error        { h.buf.WriteString("]"); return nil }
-func (h testHandler) BeginDict(n int) error  { fmt.Fprintf(h.buf, "%d<", n); return nil }
-func (h testHandler) EndDict() error         { h.buf.WriteString(">"); return nil }
-func (h testHandler) BeginSet(n int) error   { fmt.Fprintf(h.buf, "%d{", n); return nil }
-func (h testHandler) EndSet() error          { h.buf.WriteString("}"); return nil }
+func (h testHandler) Version(s string) error {
+	fmt.Fprintf(h.buf, "V%q", s)
+	return nil
+}
+
+func (h testHandler) Element(elt bplist.Type, datum interface{}) error {
+	if b, ok := datum.([]byte); ok {
+		fmt.Fprintf(h.buf, "(%s=%d bytes)", elt, len(b))
+	} else {
+		fmt.Fprintf(h.buf, "(%s=%v)", elt, datum)
+	}
+	return nil
+}
+
+func (h testHandler) Open(coll bplist.Collection, n int) error {
+	fmt.Fprintf(h.buf, "<%s size=%d>", coll, n)
+	return nil
+}
+
+func (h testHandler) Close(coll bplist.Collection) error {
+	fmt.Fprintf(h.buf, "</%s>", coll)
+	return nil
+}
