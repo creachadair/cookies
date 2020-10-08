@@ -29,6 +29,7 @@ func TestBasic(t *testing.T) {
 
 	var buf bytes.Buffer
 	if err := bplist.Parse([]byte(testInput), testHandler{
+		log: t.Logf,
 		buf: &buf,
 	}); err != nil {
 		t.Errorf("Parse failed; %v", err)
@@ -40,6 +41,7 @@ func TestBasic(t *testing.T) {
 }
 
 type testHandler struct {
+	log func(string, ...interface{})
 	buf *bytes.Buffer
 }
 
@@ -49,6 +51,7 @@ func (h testHandler) Version(s string) error {
 }
 
 func (h testHandler) Element(elt bplist.Type, datum interface{}) error {
+	h.log("Element %v %v", elt, datum)
 	if b, ok := datum.([]byte); ok {
 		fmt.Fprintf(h.buf, "(%s=%d bytes)", elt, len(b))
 	} else {
@@ -58,11 +61,13 @@ func (h testHandler) Element(elt bplist.Type, datum interface{}) error {
 }
 
 func (h testHandler) Open(coll bplist.Collection, n int) error {
+	h.log("Open %v %d", coll, n)
 	fmt.Fprintf(h.buf, "<%s size=%d>", coll, n)
 	return nil
 }
 
 func (h testHandler) Close(coll bplist.Collection) error {
+	h.log("Close %v", coll)
 	fmt.Fprintf(h.buf, "</%s>", coll)
 	return nil
 }
