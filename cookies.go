@@ -51,9 +51,13 @@ type Editor interface {
 type Action int
 
 const (
-	Keep    Action = iota // keep the cookie in the store
+	Keep    Action = iota // keep the cookie in the store, unmodified
+	Update                // keep the cookie in the store, with modifications
 	Discard               // discard the cookie from the store
 )
+
+// A ScanFunc is a callback to scan each cookie in a store.
+type ScanFunc func(Editor) (Action, error)
 
 // Store is the interface for a collection of cookies.
 type Store interface {
@@ -61,11 +65,15 @@ type Store interface {
 	//
 	// If f repots an error, scanning stops and that error is returned to the
 	// caller of Scan. Otherwise, if f returns Discard, the store marks the
-	// cookie for removal; or if f returns Keep, the cookie is retained,
-	// including any modifications made by f.
+	// cookie for removal.
+	//
+	// If f returns Keep, the cookie is retained, ignoring any modifications
+	// made by f.
+	//
+	// If f returns Update, the cookie is retained, as modified by f.
 	//
 	// If f returns an unknown Action value, Scan will report an error.
-	Scan(f func(Editor) (Action, error)) error
+	Scan(f ScanFunc) error
 
 	// Commit commits any pending modifications to persistent storage.
 	Commit() error
