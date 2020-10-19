@@ -45,3 +45,25 @@ type Editor interface {
 	// It reports an error if c cannot be represented in the format.
 	Set(c *C) error
 }
+
+type Action int
+
+const (
+	Keep    Action = iota // keep the cookie in the store
+	Discard               // discard the cookie from the store
+)
+
+// Store is the interface for a collection of cookies.
+type Store interface {
+	// Scan calls f for each cookie in the store.
+	//
+	// If f repots an error, scanning stops and that error is returned to the
+	// caller of Scan. Otherwise, if f returns Discard, the store marks the
+	// cookie for removal; or if f returns Keep, the cookie is retained,
+	// including any modifications made by f.
+	//
+	Scan(f func(Editor) (Action, error)) error
+
+	// Commit commits any pending modifications to persistent storage.
+	Commit() error
+}
