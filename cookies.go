@@ -46,6 +46,8 @@ type Editor interface {
 	Set(c *C) error
 }
 
+// An Action specifies the disposition of a cookie processed by the callback to
+// the Scan method of a Store.
 type Action int
 
 const (
@@ -62,6 +64,7 @@ type Store interface {
 	// cookie for removal; or if f returns Keep, the cookie is retained,
 	// including any modifications made by f.
 	//
+	// If f returns an unknown Action value, Scan will report an error.
 	Scan(f func(Editor) (Action, error)) error
 
 	// Commit commits any pending modifications to persistent storage.
