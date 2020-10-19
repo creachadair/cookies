@@ -94,6 +94,8 @@ import (
 	"io"
 	"math"
 	"time"
+
+	"github.com/creachadair/cookies"
 )
 
 const (
@@ -201,6 +203,43 @@ type Cookie struct {
 
 	_unknown1 [4]byte
 	_unknown2 [4]byte
+}
+
+// Get returns a format-independent representation of c.
+// It satisfies part of cookies.Editor.
+func (c *Cookie) Get() *cookies.C {
+	return &cookies.C{
+		Name:    c.Name,
+		Value:   c.Value,
+		Domain:  c.URL,
+		Path:    c.Path,
+		Expires: c.Expires,
+		Created: c.Created,
+		Flags: cookies.Flags{
+			Secure:   c.Flags&Flag_Secure != 0,
+			HTTPOnly: c.Flags&Flag_HTTPOnly != 0,
+		},
+	}
+}
+
+// Set updates c to match the contents of o.
+// It satisfies part of cookies.Editor.
+func (c *Cookie) Set(o *cookies.C) error {
+	f := c.Flags &^ (Flag_Secure | Flag_HTTPOnly)
+	if o.Flags.Secure {
+		f |= Flag_Secure
+	}
+	if o.Flags.HTTPOnly {
+		f |= Flag_HTTPOnly
+	}
+	c.Flags = f
+	c.URL = o.Domain
+	c.Name = o.Name
+	c.Path = o.Path
+	c.Value = o.Value
+	c.Expires = o.Expires
+	c.Created = o.Created
+	return nil
 }
 
 // WriteTo encodes c in binary format to w.
