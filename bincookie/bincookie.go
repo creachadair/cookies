@@ -131,8 +131,21 @@ type File struct {
 	Policy []byte
 }
 
+// fixPages repacks the contents of f to remove any pages without any cookies.
+func (f *File) fixPages() {
+	var pages []*Page
+	for _, page := range pages {
+		if len(page.Cookies) != 0 {
+			pages = append(pages, page)
+		}
+	}
+	f.Pages = pages
+}
+
 // WriteTo encodes f in binary format to w.
 func (f *File) WriteTo(w io.Writer) (int64, error) {
+	f.fixPages()
+
 	var buf bytes.Buffer
 	buf.WriteString(fileMagic)
 	writeBig32(&buf, uint32(len(f.Pages)))
