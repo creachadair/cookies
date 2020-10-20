@@ -64,15 +64,18 @@ type Store interface {
 	// Scan calls f for each cookie in the store.
 	//
 	// If f repots an error, scanning stops and that error is returned to the
-	// caller of Scan. Otherwise, if f returns Discard, the store marks the
-	// cookie for removal.
+	// caller of Scan. Otherwise, the cookie is handled according to the Action
+	// reported by f.
 	//
-	// If f returns Keep, the cookie is retained, ignoring any modifications
-	// made by f.
+	// if f returns Discard, the cookie is removed from the store.
 	//
-	// If f returns Update, the cookie is retained, as modified by f.
+	// If f returns Update, the cookie is updated with any modifications made by
+	// f via the Editor interface.
 	//
-	// If f returns an unknown Action value, Scan will report an error.
+	// If f returns Keep, the cookie is retained as-presented, and any
+	// modifications made by f are discarded.
+	//
+	// If f returns an unknown Action value, Scan must report an error.
 	Scan(f ScanFunc) error
 
 	// Commit commits any pending modifications to persistent storage.
