@@ -84,7 +84,7 @@ func decryptValue(key, val []byte) ([]byte, error) {
 
 func padLength(n int) int {
 	if n%16 == 0 {
-		return 16 // ensure there is alwyas at least 1 byte of padding
+		return 16 // ensure there is always at least 1 byte of padding
 	}
 	return 16 - (n % 16)
 }
