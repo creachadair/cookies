@@ -88,6 +88,7 @@ func Open(path string, opts *Options) (*Store, error) {
 }
 
 // Options provide optional settings for opening a Chrome cookie database.
+// A nil *Options is ready for use, and provides empty values.
 type Options struct {
 	Passphrase string // the passphrase for encrypted values
 
@@ -136,6 +137,7 @@ func (s *Store) Scan(f cookies.ScanFunc) (err error) {
 		switch act {
 		case cookies.Keep:
 			continue
+
 		case cookies.Update:
 			if err := s.writeCookie(c); err != nil {
 				return err
@@ -272,6 +274,11 @@ func (s *Store) writeCookie(c *Cookie) error {
 }
 
 // A Cookie represents a single cookie from a Chrome database.
+//
+// Values are automatically encrypted and decrypted if the store has an
+// encryption key. If no decryption key is provided, encrypted values are
+// represented by a Value with string "[ENCRYPTED]"; if an invalid decryption
+// key is given, an error is reported.
 type Cookie struct {
 	cookies.C
 
@@ -284,18 +291,22 @@ func (c *Cookie) Get() *cookies.C { return &c.C }
 // Set satisfies part of the cookies.Editor interface.
 func (c *Cookie) Set(o *cookies.C) error { c.C = *o; return nil }
 
+// timestampToTime converts a value in microseconds sincde the Chrome epoch to
+// a time in UTC.
 func timestampToTime(usec int64) time.Time {
 	sec := usec/1e6 - chromeEpoch
 	nano := (usec % 1e6) * 1000
 	return time.Unix(sec, nano).In(time.UTC)
 }
 
+// timeToTimestamp conversts a time value to microseconds since the Chrome epoch.
 func timeToTimestamp(t time.Time) int64 {
 	sec := t.Unix() + chromeEpoch
 	usec := int64(t.Nanosecond()) / 1000
 	return sec*1e6 + usec
 }
 
+// boolToInt converts a bool to an int64 for storage in SQLite.
 func boolToInt(v bool) int64 {
 	if v {
 		return 1
