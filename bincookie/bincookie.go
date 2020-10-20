@@ -350,7 +350,6 @@ func ParseFile(data []byte) (*File, error) {
 		cur += 4
 		end := cur + int(plen)
 		f.Policy = data[cur:end]
-		cur = end
 	}
 	return f, nil
 }
