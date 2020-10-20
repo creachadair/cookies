@@ -18,6 +18,7 @@ package chromedb
 import (
 	"encoding/hex"
 	"fmt"
+	"runtime"
 	"time"
 
 	"crawshaw.io/sqlite"
@@ -75,18 +76,48 @@ WHERE rowid = $rowid;`
 */
 
 // Open opens the Chrome cookie database at the specified path.
-func Open(path string) (*Store, error) {
+func Open(path string, opts *Options) (*Store, error) {
 	conn, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READWRITE)
 	if err != nil {
 		return nil, err
 	}
-	return &Store{conn: conn}, nil
+	return &Store{
+		conn: conn,
+		key:  opts.encryptionKey(),
+	}, nil
+}
+
+// Options provide optional settings for opening a Chrome cookie database.
+type Options struct {
+	Passphrase string // the passphrase for encrypted values
+
+	// The number of PBKDF2 iterations to use when converting the passphrase
+	// into an encryption key. If ≤ 0, use a default based on runtime.GOOS.
+	Iterations int
+}
+
+// encryptionKey returns the encryption key generated from o, or nil.
+func (o *Options) encryptionKey() []byte {
+	if o == nil || o.Passphrase == "" {
+		return nil
+	}
+	iter := o.Iterations
+	if iter <= 0 {
+		switch runtime.GOOS {
+		case "darwin":
+			iter = 1003
+		default:
+			iter = 1
+		}
+	}
+	return encryptionKey(o.Passphrase, iter)
 }
 
 // A Store connects to a collection of cookies stored in an SQLite database
 // using the Google Chrome cookie schema.
 type Store struct {
 	conn *sqlite.Conn
+	key  []byte // encryption key, or nil
 }
 
 // Scan satisfies part of the cookies.Store interface.
@@ -140,18 +171,29 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 		} else if !ok {
 			break
 		}
-		isEncrypted := false
-		val := stmt.GetText("value")
-		if val == "" {
-			buf := make([]byte, stmt.GetLen("encrypted_value"))
-			stmt.GetBytes("encrypted_value", buf)
-			val = string(buf)
-			isEncrypted = true
+
+		value := stmt.GetText("value")
+
+		// If the value is empty, check for an encrypted value.
+		if value == "" && stmt.GetLen("encrypted_value") != 0 {
+			// If we don't have an encryption key, mark the value.
+			if len(s.key) == 0 {
+				value = "[ENCRYPTED]"
+			} else {
+				buf := make([]byte, stmt.GetLen("encrypted_value"))
+				stmt.GetBytes("encrypted_value", buf)
+				dec, err := decryptValue(s.key, buf)
+				if err != nil {
+					return nil, fmt.Errorf("decrypting value: %w", err)
+				}
+				value = string(dec)
+			}
 		}
+
 		cs = append(cs, &Cookie{
 			C: cookies.C{
 				Name:    stmt.GetText("name"),
-				Value:   val,
+				Value:   value,
 				Domain:  stmt.GetText("host_key"),
 				Path:    stmt.GetText("path"),
 				Expires: timestampToTime(stmt.GetInt64("expires_utc")),
@@ -161,9 +203,7 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 					HTTPOnly: stmt.GetInt64("is_httponly") != 0,
 				},
 			},
-
-			isEncrypted: isEncrypted,
-			rowID:       stmt.GetInt64("rowid"),
+			rowID: stmt.GetInt64("rowid"),
 		})
 	}
 	return cs, nil
@@ -196,14 +236,20 @@ func (s *Store) dropCookie(c *Cookie) error {
 	return err
 }
 
+// hexString encodes a binary blob as a SQL hex string literal, X'....'.
+func hexString(data []byte) string { return `X'` + hex.EncodeToString(data) + `'` }
+
+// writeCookie writes the current state of c to the store.
 func (s *Store) writeCookie(c *Cookie) error {
 	var query string
-	if c.isEncrypted {
-		query = fmt.Sprintf(writeCookieStmt, "encrypted_value",
-			"X'"+hex.EncodeToString([]byte(c.Value))+"'")
-	} else {
+	if len(s.key) == 0 {
 		query = fmt.Sprintf(writeCookieStmt, "value", "$value")
+	} else if enc, err := encryptValue(s.key, []byte(c.Value)); err != nil {
+		return fmt.Errorf("encrypting value: %w", err)
+	} else {
+		query = fmt.Sprintf(writeCookieStmt, "encrypted_value", hexString(enc))
 	}
+
 	stmt, err := s.conn.Prepare(query)
 	if err != nil {
 		return err
@@ -217,9 +263,10 @@ func (s *Store) writeCookie(c *Cookie) error {
 	stmt.SetInt64("$created", timeToTimestamp(c.Created))
 	stmt.SetInt64("$secure", boolToInt(c.Flags.Secure))
 	stmt.SetInt64("$httponly", boolToInt(c.Flags.HTTPOnly))
-	if !c.isEncrypted {
+	if len(s.key) == 0 {
 		stmt.SetText("$value", c.Value)
 	}
+
 	_, err = stmt.Step()
 	return err
 }
@@ -228,12 +275,8 @@ func (s *Store) writeCookie(c *Cookie) error {
 type Cookie struct {
 	cookies.C
 
-	isEncrypted bool
-	rowID       int64
+	rowID int64
 }
-
-// IsEncrypted reports whether the Value field is encrypted.
-func (c *Cookie) IsEncrypted() bool { return c.isEncrypted }
 
 // Get satisfies part of the cookies.Editor interface.
 func (c *Cookie) Get() *cookies.C { return &c.C }

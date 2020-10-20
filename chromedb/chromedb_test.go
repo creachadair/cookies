@@ -23,14 +23,17 @@ import (
 )
 
 var (
-	inputFile = flag.String("input", "", "Input chrome cookie database")
+	inputFile = flag.String("input", "", "Input Chrome cookie database")
+	dbSecret  = flag.String("passphrase", "", "Passphrase for encrypted values")
 )
 
 func TestManual(t *testing.T) {
 	if *inputFile == "" {
 		t.Skip("Skipping test since no -input is specified")
 	}
-	s, err := chromedb.Open(*inputFile)
+	s, err := chromedb.Open(*inputFile, &chromedb.Options{
+		Passphrase: *dbSecret,
+	})
 	if err != nil {
 		t.Fatalf("Opening database: %v", err)
 	}
@@ -39,8 +42,14 @@ func TestManual(t *testing.T) {
 	if err := s.Scan(func(e cookies.Editor) (cookies.Action, error) {
 		numCookies++
 		c := e.Get()
-		t.Logf("-- Cookie %d:\n  domain=%q name=%q value=[%d bytes]\n  secure=%v http_only=%v\n  created=%v\n  expires=%v",
-			numCookies, c.Domain, c.Name, len(c.Value), c.Flags.Secure, c.Flags.HTTPOnly, c.Created, c.Expires)
+		t.Logf("-- Cookie %d:\n"+
+			"  domain=%q name=%q value=%q\n"+
+			"  secure=%v http_only=%v\n"+
+			"  created=%v expires=%v",
+			numCookies,
+			c.Domain, c.Name, c.Value,
+			c.Flags.Secure, c.Flags.HTTPOnly,
+			c.Created, c.Expires)
 		return cookies.Keep, nil
 	}); err != nil {
 		t.Fatalf("Scan failed: %v", err)
