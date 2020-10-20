@@ -50,6 +50,7 @@ type Editor interface {
 // the Scan method of a Store.
 type Action int
 
+// Values for the Action enumeration.
 const (
 	Keep    Action = iota // keep the cookie in the store, unmodified
 	Update                // keep the cookie in the store, with modifications
