@@ -65,7 +65,7 @@
 //  -------|------------|----------------------------------------------
 //   4     | uint32 LE  | cookie record size, bytes (incl. size field)
 //   4     | uint32 LE  | unknown meaning; usually zero
-//   4     | uint32 LE  | flag bitmap (1=secure, 4=httpOnly)
+//   4     | uint32 LE  | flag bitmap (see "Flags" below)
 //   4     | uint32 LE  | unknown meaning; usually zero
 //   4     | uint32 LE  | offset of URL string
 //   4     | uint32 LE  | offset of name string
@@ -93,7 +93,7 @@
 //    1     (unknown)
 //    2     HTTPOnly
 //
-// The next three bits describe the SameSite policy for the cookie:
+// The next three bits (3-5) describe the SameSite policy for the cookie:
 //
 //    Value     Description
 //    4 (0b100) None (no restrictions; also the default)
