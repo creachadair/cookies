@@ -134,7 +134,7 @@ type File struct {
 // fixPages repacks the contents of f to remove any pages without any cookies.
 func (f *File) fixPages() {
 	var pages []*Page
-	for _, page := range pages {
+	for _, page := range f.Pages {
 		if len(page.Cookies) != 0 {
 			pages = append(pages, page)
 		}
