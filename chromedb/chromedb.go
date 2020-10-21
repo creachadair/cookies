@@ -286,10 +286,10 @@ type Cookie struct {
 }
 
 // Get satisfies part of the cookies.Editor interface.
-func (c *Cookie) Get() *cookies.C { return &c.C }
+func (c *Cookie) Get() cookies.C { return c.C }
 
 // Set satisfies part of the cookies.Editor interface.
-func (c *Cookie) Set(o *cookies.C) error { c.C = *o; return nil }
+func (c *Cookie) Set(o cookies.C) error { c.C = o; return nil }
 
 // timestampToTime converts a value in microseconds sincde the Chrome epoch to
 // a time in UTC.

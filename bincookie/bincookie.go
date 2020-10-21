@@ -220,8 +220,8 @@ type Cookie struct {
 
 // Get returns a format-independent representation of c.
 // It satisfies part of cookies.Editor.
-func (c *Cookie) Get() *cookies.C {
-	return &cookies.C{
+func (c *Cookie) Get() cookies.C {
+	return cookies.C{
 		Name:    c.Name,
 		Value:   c.Value,
 		Domain:  c.URL,
@@ -237,7 +237,7 @@ func (c *Cookie) Get() *cookies.C {
 
 // Set updates c to match the contents of o.
 // It satisfies part of cookies.Editor.
-func (c *Cookie) Set(o *cookies.C) error {
+func (c *Cookie) Set(o cookies.C) error {
 	f := c.Flags &^ (Flag_Secure | Flag_HTTPOnly)
 	if o.Flags.Secure {
 		f |= Flag_Secure

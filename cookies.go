@@ -39,11 +39,11 @@ type Flags struct {
 // format-independent version.
 type Editor interface {
 	// Get returns a format-independent representation of the receiver.
-	Get() *C
+	Get() C
 
 	// Set updates the contents of the receiver to match c.
 	// It reports an error if c cannot be represented in the format.
-	Set(c *C) error
+	Set(c C) error
 }
 
 // An Action specifies the disposition of a cookie processed by the callback to
