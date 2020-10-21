@@ -21,6 +21,12 @@ CREATE TABLE cookies (
    samesite         INTEGER  NOT NULL DEFAULT  -1,
    source_scheme    INTEGER  NOT NULL DEFAULT  0,
 
+   -- samesite values, from Chromium cookies/cookie_constants.h
+   --   UNSPECIFIED    = -1
+   --   NO_RESTRICTION = 0    "None"
+   --   LAX_MODE       = 1    "Lax"
+   --   STRICT_MODE    = 2    "Strict"
+
    UNIQUE (host_key, name, path)
 );
 ```
