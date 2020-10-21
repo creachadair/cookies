@@ -24,9 +24,30 @@ type C struct {
 	Domain string
 	Path   string
 
-	Expires time.Time // if zero, has no expiration
-	Created time.Time
-	Flags   Flags
+	Expires  time.Time // if zero, has no expiration
+	Created  time.Time
+	Flags    Flags
+	SameSite SameSite
+}
+
+// SameSite describes a first-party cookie policy.
+type SameSite int
+
+// Enumerators for SameSite policies.
+const (
+	Unknown SameSite = iota // unknown or unspecified policy
+	Lax                     // top-level navigations and 3rd-party GET requests
+	Strict                  // first-party context only
+	None                    // unrestricted; send to all origins
+)
+
+var sameSiteStrings = [...]string{"Unknown", "Lax", "Strict", "None"}
+
+func (s SameSite) String() string {
+	if s < 0 || int(s) >= len(sameSiteStrings) {
+		return sameSiteStrings[0]
+	}
+	return sameSiteStrings[s]
 }
 
 // Flags represents the optional flags that can be set on a cookie.
@@ -52,10 +73,19 @@ type Action int
 
 // Values for the Action enumeration.
 const (
-	Keep    Action = iota // keep the cookie in the store, unmodified
-	Update                // keep the cookie in the store, with modifications
-	Discard               // discard the cookie from the store
+	Keep    Action = 1 + iota // keep the cookie in the store, unmodified
+	Update                    // keep the cookie in the store, with modifications
+	Discard                   // discard the cookie from the store
 )
+
+var actionStrings = [...]string{"Invalid", "Keep", "Update", "Discard"}
+
+func (a Action) String() string {
+	if a < 0 || int(a) >= len(actionStrings) {
+		return actionStrings[0]
+	}
+	return actionStrings[a]
+}
 
 // A ScanFunc is a callback to scan each cookie in a store.
 type ScanFunc func(Editor) (Action, error)
