@@ -33,12 +33,12 @@ The `expires_utc` and `creation_utc` fields contain timestamps given as integer 
 
 The `value` and `encrypted_value` fields are used to store cookie values. In practice, one or the other is populated, but not both.
 
-| `value`   | `encrypted_value` | Description          |
-| --------- | ----------------- | -------------------- |
-| empty     | non-empty         | Value is encrypted   |
-| non-empty | empty             | Value is unencrypted |
-| empty     | empty             | Value is unencrypted |
-| non-empty | non-empty         | (not observed)       |
+| `value`   | `encrypted_value` | Description                        |
+| --------- | ----------------- | ---------------------------------- |
+| empty     | non-empty         | Encrypted value                    |
+| non-empty | empty             | Non-zero length value, unencrypted |
+| empty     | empty             | Zero-length value, unencrypted     |
+| non-empty | non-empty         | (not observed)                     |
 
 ## Storage Format
 
