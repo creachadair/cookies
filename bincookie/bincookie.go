@@ -330,7 +330,7 @@ const (
 	FlagHTTPOnly  = 0004 // the HTTPOnly flag
 
 	FlagSameSiteMask   = 0070 // the SameSite policy
-	FlagSameSiteNone   = 0040 // SameSIte=None
+	FlagSameSiteNone   = 0040 // SameSite=None
 	FlagSameSiteLax    = 0050 // SameSite=Lax
 	FlagSameSiteStrict = 0070 // SameSite=Strict
 )
