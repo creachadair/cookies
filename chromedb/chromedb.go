@@ -30,7 +30,7 @@ const (
 SELECT 
   rowid, name, value, encrypted_value, host_key, path,
   expires_utc, creation_utc,
-  is_secure, is_httponly
+  is_secure, is_httponly, samesite
 FROM cookies;`
 
 	writeCookieStmt = `
@@ -42,7 +42,8 @@ UPDATE cookies SET
   expires_utc = $expires,
   creation_utc = $created,
   is_secure = $secure,
-  is_httponly = $httponly
+  is_httponly = $httponly,
+  samesite = $samesite
 WHERE rowid = $rowid;`
 
 	dropCookieStmt = `DELETE FROM cookies WHERE rowid = $rowid;`
@@ -204,6 +205,7 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 					Secure:   stmt.GetInt64("is_secure") != 0,
 					HTTPOnly: stmt.GetInt64("is_httponly") != 0,
 				},
+				SameSite: decodeSitePolicy(stmt.GetInt64("samesite")),
 			},
 			rowID: stmt.GetInt64("rowid"),
 		})
@@ -265,6 +267,7 @@ func (s *Store) writeCookie(c *Cookie) error {
 	stmt.SetInt64("$created", timeToTimestamp(c.Created))
 	stmt.SetInt64("$secure", boolToInt(c.Flags.Secure))
 	stmt.SetInt64("$httponly", boolToInt(c.Flags.HTTPOnly))
+	stmt.SetInt64("$samesite", encodeSitePolicy(c.SameSite))
 	if len(s.key) == 0 {
 		stmt.SetText("$value", c.Value)
 	}
@@ -290,6 +293,34 @@ func (c *Cookie) Get() cookies.C { return c.C }
 
 // Set satisfies part of the cookies.Editor interface.
 func (c *Cookie) Set(o cookies.C) error { c.C = o; return nil }
+
+// decodeSitePolicy maps a Chrome SameSite policy to the generic enum.
+func decodeSitePolicy(v int64) cookies.SameSite {
+	switch v {
+	case 0:
+		return cookies.None
+	case 1:
+		return cookies.Lax
+	case 2:
+		return cookies.Strict
+	default:
+		return cookies.Unknown
+	}
+}
+
+// encodeSitePoicy maps a generic SameSite policy to the Chrome enum.
+func encodeSitePolicy(p cookies.SameSite) int64 {
+	switch p {
+	case cookies.None:
+		return 0
+	case cookies.Lax:
+		return 1
+	case cookies.Strict:
+		return 2
+	default:
+		return -1 // unspecified
+	}
+}
 
 // timestampToTime converts a value in microseconds sincde the Chrome epoch to
 // a time in UTC.

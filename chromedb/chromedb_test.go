@@ -44,11 +44,11 @@ func TestManual(t *testing.T) {
 		c := e.Get()
 		t.Logf("-- Cookie %d:\n"+
 			"  domain=%q name=%q value=%q\n"+
-			"  secure=%v http_only=%v\n"+
-			"  created=%v expires=%v",
+			"  secure=%v http_only=%v samesite=%v\n"+
+			"  created=%v | expires=%v",
 			numCookies,
 			c.Domain, c.Name, c.Value,
-			c.Flags.Secure, c.Flags.HTTPOnly,
+			c.Flags.Secure, c.Flags.HTTPOnly, c.SameSite,
 			c.Created, c.Expires)
 		return cookies.Keep, nil
 	}); err != nil {
