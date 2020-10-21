@@ -24,7 +24,7 @@ type C struct {
 	Domain string
 	Path   string
 
-	Expires time.Time
+	Expires time.Time // if zero, has no expiration
 	Created time.Time
 	Flags   Flags
 }
