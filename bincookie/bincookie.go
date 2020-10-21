@@ -84,6 +84,22 @@
 // checksum for a page is the integer sum of the bytes at offset multiples of 4
 // (0, 4, 8, ...). The checksum of the file is the sum of the page checksums.
 //
+// Flags
+//
+// The lower-order 3 bits of the flags are a bitmap of Boolean flags:
+//
+//    Bit   Description
+//    0     Secure
+//    1     (unknown)
+//    2     HTTPOnly
+//
+// The next three bits describe the SameSite policy for the cookie:
+//
+//    Value     Description
+//    4 (0b100) None (no restrictions; also the default)
+//    5 (0b101) Lax
+//    7 (0b111) Strict
+//
 package bincookie
 
 import (
@@ -229,21 +245,22 @@ func (c *Cookie) Get() cookies.C {
 		Expires: c.Expires,
 		Created: c.Created,
 		Flags: cookies.Flags{
-			Secure:   c.Flags&Flag_Secure != 0,
-			HTTPOnly: c.Flags&Flag_HTTPOnly != 0,
+			Secure:   c.Flags&FlagSecure != 0,
+			HTTPOnly: c.Flags&FlagHTTPOnly != 0,
 		},
+		SameSite: c.sameSite(),
 	}
 }
 
 // Set updates c to match the contents of o.
 // It satisfies part of cookies.Editor.
 func (c *Cookie) Set(o cookies.C) error {
-	f := c.Flags &^ (Flag_Secure | Flag_HTTPOnly)
+	f := c.Flags &^ FlagFlagsMask
 	if o.Flags.Secure {
-		f |= Flag_Secure
+		f |= FlagSecure
 	}
 	if o.Flags.HTTPOnly {
-		f |= Flag_HTTPOnly
+		f |= FlagHTTPOnly
 	}
 	c.Flags = f
 	c.URL = o.Domain
@@ -252,6 +269,7 @@ func (c *Cookie) Set(o cookies.C) error {
 	c.Value = o.Value
 	c.Expires = o.Expires
 	c.Created = o.Created
+	c.setSameSite(o.SameSite)
 	return nil
 }
 
@@ -280,10 +298,41 @@ func (c *Cookie) WriteTo(w io.Writer) (int64, error) {
 	return io.Copy(w, &buf)
 }
 
+func (c *Cookie) sameSite() cookies.SameSite {
+	switch c.Flags & FlagSameSiteMask {
+	case FlagSameSiteNone:
+		return cookies.None
+	case FlagSameSiteLax:
+		return cookies.Lax
+	case FlagSameSiteStrict:
+		return cookies.Strict
+	default:
+		return cookies.Unknown
+	}
+}
+
+func (c *Cookie) setSameSite(s cookies.SameSite) {
+	c.Flags &^= FlagSameSiteMask // clear the same-site bits
+	switch s {
+	case cookies.None:
+		c.Flags |= FlagSameSiteNone
+	case cookies.Lax:
+		c.Flags |= FlagSameSiteLax
+	case cookies.Strict:
+		c.Flags |= FlagSameSiteStrict
+	}
+}
+
 // Constants for the flags bitmap.
 const (
-	Flag_Secure   = 1
-	Flag_HTTPOnly = 4
+	FlagFlagsMask = 0007 // the flag bits
+	FlagSecure    = 0001 // the Secure flag
+	FlagHTTPOnly  = 0004 // the HTTPOnly flag
+
+	FlagSameSiteMask   = 0070 // the SameSite policy
+	FlagSameSiteNone   = 0040 // SameSIte=None
+	FlagSameSiteLax    = 0050 // SameSite=Lax
+	FlagSameSiteStrict = 0070 // SameSite=Strict
 )
 
 // ParseFile parses the binary contents of a bincookie file.

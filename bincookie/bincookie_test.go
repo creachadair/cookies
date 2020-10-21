@@ -79,8 +79,8 @@ func TestManual(t *testing.T) {
 	if err := s.Scan(func(e cookies.Editor) (cookies.Action, error) {
 		count++
 		c := e.Get()
-		t.Logf("Cookie %d: domain=%q, name=%q, value=%q, created=%v, expires=%v",
-			count, c.Domain, c.Name, trimValue(c.Value), c.Created, c.Expires)
+		t.Logf("Cookie %d: domain=%q, name=%q, value=%q, samesite=%v, created=%v | expires=%v",
+			count, c.Domain, c.Name, trimValue(c.Value), c.SameSite, c.Created, c.Expires)
 		return cookies.Keep, nil
 	}); err != nil {
 		t.Errorf("Scan failed: %v", err)
@@ -106,7 +106,7 @@ func TestRoundTrip(t *testing.T) {
 	f := &bincookie.File{
 		Pages: []*bincookie.Page{{
 			Cookies: []*bincookie.Cookie{{
-				Flags:   bincookie.Flag_Secure,
+				Flags:   bincookie.FlagSecure,
 				URL:     "example.com",
 				Path:    "/foo",
 				Name:    "letter",
@@ -126,7 +126,7 @@ func TestRoundTrip(t *testing.T) {
 				Path:  "/account",
 				Name:  "login",
 				Value: "freezetag",
-				Flags: bincookie.Flag_HTTPOnly | bincookie.Flag_Secure,
+				Flags: bincookie.FlagHTTPOnly | bincookie.FlagSecure,
 			}},
 		}},
 		Policy: []byte(bincookie.DefaultPolicy),
