@@ -16,6 +16,7 @@ package bincookie
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 
 	"github.com/creachadair/atomicfile"
@@ -44,6 +45,11 @@ type Store struct {
 	path  string
 	file  *File
 	dirty bool
+}
+
+// WriteTo encodes the file associated with s in binary format to w.
+func (s *Store) WriteTo(w io.Writer) (int64, error) {
+	return s.file.WriteTo(w)
 }
 
 // Scan implements part of the cookies.Store interface.

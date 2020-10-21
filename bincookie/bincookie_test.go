@@ -17,12 +17,14 @@ package bincookie_test
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/creachadair/cookies"
 	"github.com/creachadair/cookies/bincookie"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -42,16 +44,21 @@ func TestManual(t *testing.T) {
 	if *inputFile == "" {
 		t.Skip("Skipping test since no -input is specified")
 	}
+
+	// Read the raw bytes of the file for comparison purposes.
 	data, err := ioutil.ReadFile(*inputFile)
 	if err != nil {
 		t.Fatalf("Reading input: %v", err)
 	}
 	t.Logf("Read %d bytes from %q", len(data), *inputFile)
-	f, err := bincookie.ParseFile(data)
+
+	// Open a scanner on the same file.
+	s, err := bincookie.Open(*inputFile)
 	if err != nil {
-		t.Fatalf("ParseFile failed: %v", err)
+		t.Fatalf("Opening store: %v", err)
 	}
 
+	// Capture output to a buffer, and copy to a file if -output is set.
 	var buf bytes.Buffer
 	var w io.Writer = &buf
 	if *outputFile != "" {
@@ -67,7 +74,21 @@ func TestManual(t *testing.T) {
 		w = io.MultiWriter(&buf, out)
 	}
 
-	nw, err := f.WriteTo(w)
+	// Exercise the Scan method of the store.
+	var count int
+	if err := s.Scan(func(e cookies.Editor) (cookies.Action, error) {
+		count++
+		c := e.Get()
+		t.Logf("Cookie %d: domain=%q, name=%q, value=%q, created=%v, expires=%v",
+			count, c.Domain, c.Name, trimValue(c.Value), c.Created, c.Expires)
+		return cookies.Keep, nil
+	}); err != nil {
+		t.Errorf("Scan failed: %v", err)
+	}
+	t.Logf("Scanned %d cookies", count)
+
+	// Serialize the results to make sure we don't lose any data.
+	nw, err := s.WriteTo(w)
 	if err != nil {
 		t.Errorf("Writing output: %v", err)
 	} else {
@@ -128,4 +149,11 @@ func TestRoundTrip(t *testing.T) {
 	if diff := cmp.Diff(f, g, opts); diff != "" {
 		t.Errorf("Round trip failed: (-want, +got)\n%s", diff)
 	}
+}
+
+func trimValue(s string) string {
+	if len(s) < 70 {
+		return s
+	}
+	return s[:60] + fmt.Sprintf("[...%d more]", len(s)-70)
 }
