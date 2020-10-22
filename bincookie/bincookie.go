@@ -120,8 +120,8 @@ const (
 	pageMagic   = "\x00\x00\x01\x00"
 	fileTrailer = "\x07\x17\x20\x05"
 
-	// DefaultPolicy is the default cookie acccept policy property list used
-	// when writing a *File that does not set one explicitly.
+	// DefaultPolicy is the default cookie accept policy property list used when
+	// writing a *File that does not set one explicitly.
 	//
 	// This is the binary property list encoding of NSHTTPCookieAcceptPolicy: 2.
 	//
