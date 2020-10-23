@@ -39,6 +39,7 @@ import (
 
 var (
 	configPath = flag.String("config", "$HOME/.cookierc", "Configuration file path (required)")
+	doDryRun   = flag.Bool("dry-run", false, "Process inputs but do not apply the changes")
 	doVerbose  = flag.Bool("v", false, "Verbose logging")
 )
 
@@ -49,6 +50,9 @@ func init() {
 Edit browser cookies to remove any that do not match the specified
 policy rules.
 
+If cookie files are named on the commmand line, they are processed
+in preference to any files named in the configuration file.
+
 Options:
 `, filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
@@ -57,6 +61,8 @@ Options:
 
 func main() {
 	flag.Parse()
+
+	// Load the configuration file.
 	if *configPath == "" {
 		log.Fatal("You must provide a non-empty -config path")
 	}
@@ -65,13 +71,26 @@ func main() {
 		log.Fatalf("Invalid config: %v", err)
 	}
 
+	// If the user specified non-flag arguments, use them instead of the file
+	// list from the configuration file.
+	if flag.NArg() != 0 {
+		if len(cfg.Files) != 0 {
+			fmt.Fprintf(os.Stderr, "🚨 Skipping %d inputs listed in the config file\n", len(cfg.Files))
+		}
+		cfg.Files = flag.Args()
+	}
+
+	if *doDryRun {
+		fmt.Fprint(os.Stderr, "🦺 This is a dry run; no changes will be made\n\n")
+	}
+
 	for _, path := range cfg.Files {
 		path = os.ExpandEnv(path)
 		s, err := config.OpenStore(path)
 		if err != nil {
 			log.Fatalf("Opening %q: %v", path, err)
 		}
-		fmt.Fprintf(os.Stderr, "Processing cookies from %q\n", path)
+		fmt.Fprintf(os.Stderr, "Scanning %q\n", path)
 
 		var nKept, nDiscarded int
 		if err := s.Scan(func(e cookies.Editor) (cookies.Action, error) {
@@ -97,15 +116,18 @@ func main() {
 				return cookies.Keep, nil
 			}
 			nDiscarded++
-			fmt.Fprintf(os.Stderr, " 🔥 %-30s %s\n", ck.Domain, ck.Name)
-			return cookies.Discard, nil // BOZO
+			fmt.Fprintf(os.Stderr, " 🚫 %-30s %s\n", ck.Domain, ck.Name)
+			if *doDryRun {
+				return cookies.Keep, nil
+			}
+			return cookies.Discard, nil
 		}); err != nil {
 			log.Fatalf("Scanning %q: %v", path, err)
 		} else if err := s.Commit(); err != nil {
 			log.Fatalf("Committing %q: %v", path, err)
 		}
 
-		fmt.Fprintf(os.Stderr, ">> Processed %d cookies; kept %d, discarded %d\n",
+		fmt.Fprintf(os.Stderr, ">> TOTAL %d cookies; kept %d, discarded %d\n\n",
 			nKept+nDiscarded, nKept, nDiscarded)
 	}
 }
