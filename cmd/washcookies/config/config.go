@@ -60,7 +60,9 @@ import (
 func OpenStore(path string) (cookies.Store, error) {
 	if filepath.Ext(path) == ".binarycookies" {
 		return bincookie.Open(path)
-	} else if filepath.Base(path) == "Cookies" {
+	}
+	p := strings.ToLower(path)
+	if strings.Contains(p, "google") && filepath.Base(p) == "cookies" {
 		return chromedb.Open(path, nil)
 	}
 	return nil, errors.New("unknown file type")
