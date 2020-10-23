@@ -14,7 +14,7 @@
 //
 // Files
 //
-// Comment lines that begin with "#+" are treated as the pathnames of files to
+// Comment lines that begin with "#=" are treated as the pathnames of files to
 // process. Shell variables such as $HOME are expanded.
 //
 // Fields
@@ -68,7 +68,7 @@ func OpenStore(path string) (cookies.Store, error) {
 
 // Config represents the contents of a configuration file.
 type Config struct {
-	Files []string // any #+ file lines
+	Files []string // any #= file lines
 	Rules []Rule
 }
 
@@ -174,7 +174,7 @@ func Open(path string) (*Config, error) {
 		line := strings.TrimSpace(buf.Text())
 		if line == "" {
 			continue // skip blanks
-		} else if strings.HasPrefix(line, "#+") {
+		} else if strings.HasPrefix(line, "#=") {
 			cfg.Files = append(cfg.Files, line[2:])
 			continue
 		} else if line[0] == '#' {
