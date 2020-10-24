@@ -99,8 +99,8 @@ func main() {
 		var nKept, nDiscarded int
 		if err := s.Scan(func(e cookies.Editor) (cookies.Action, error) {
 			ck := e.Get()
-			var keepReason, denyReason string
-			var keep, deny bool
+			var allowReason, denyReason string
+			var allow, deny bool
 			for _, rule := range cfg.Match(ck) {
 				switch rule.Tag {
 				case "!":
@@ -111,11 +111,11 @@ func main() {
 					deny = true
 					denyReason = rule.Reason
 				case "+":
-					keep = true
-					keepReason = rule.Reason
+					allow = true
+					allowReason = rule.Reason
 				}
 			}
-			if deny || !keep {
+			if deny || !allow {
 				nDiscarded++
 				fmt.Fprint(tw, message("🚫", ck, denyReason))
 				if *doDryRun {
@@ -124,7 +124,7 @@ func main() {
 				return cookies.Discard, nil
 			}
 			nKept++
-			vlog(message("🆗", ck, keepReason))
+			vlog(message("🆗", ck, allowReason))
 			return cookies.Keep, nil
 		}); err != nil {
 			log.Fatalf("Scanning %q: %v", path, err)
