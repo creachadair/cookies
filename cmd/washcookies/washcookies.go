@@ -118,6 +118,9 @@ func main() {
 			if deny || !keep {
 				nDiscarded++
 				fmt.Fprint(tw, message("🚫", ck, denyReason))
+				if *doDryRun {
+					return cookies.Keep, nil
+				}
 				return cookies.Discard, nil
 			}
 			nKept++
