@@ -32,6 +32,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/creachadair/cookies"
 	"github.com/creachadair/cookies/cmd/washcookies/config"
@@ -41,6 +43,8 @@ var (
 	configPath = flag.String("config", "$HOME/.cookierc", "Configuration file path (required)")
 	doDryRun   = flag.Bool("dry-run", false, "Process inputs but do not apply the changes")
 	doVerbose  = flag.Bool("v", false, "Verbose logging")
+
+	tw = tabwriter.NewWriter(os.Stderr, 4, 8, 1, ' ', 0)
 )
 
 func init() {
@@ -95,45 +99,51 @@ func main() {
 		var nKept, nDiscarded int
 		if err := s.Scan(func(e cookies.Editor) (cookies.Action, error) {
 			ck := e.Get()
-			var keep, allow, deny bool
+			var keepReason, denyReason string
+			var keep, deny bool
 			for _, rule := range cfg.Match(ck) {
 				switch rule.Tag {
-				case "+":
-					allow = true
+				case "!":
+					nKept++
+					vlog(message("✨", ck, rule.Reason))
+					return cookies.Keep, nil
 				case "-":
 					deny = true
-				case "!":
+					denyReason = rule.Reason
+				case "+":
 					keep = true
+					keepReason = rule.Reason
 				}
 			}
-			if keep {
-				nKept++
-				vlog(" ✨ %-30s %s\n", ck.Domain, ck.Name)
-				return cookies.Keep, nil
-			} else if allow && !deny {
-				nKept++
-				vlog(" 🆗 %-30s %s\n", ck.Domain, ck.Name)
-				return cookies.Keep, nil
+			if deny || !keep {
+				nDiscarded++
+				fmt.Fprint(tw, message("🚫", ck, denyReason))
+				return cookies.Discard, nil
 			}
-			nDiscarded++
-			fmt.Fprintf(os.Stderr, " 🚫 %-30s %s\n", ck.Domain, ck.Name)
-			if *doDryRun {
-				return cookies.Keep, nil
-			}
-			return cookies.Discard, nil
+			nKept++
+			vlog(message("🆗", ck, keepReason))
+			return cookies.Keep, nil
 		}); err != nil {
 			log.Fatalf("Scanning %q: %v", path, err)
 		} else if err := s.Commit(); err != nil {
 			log.Fatalf("Committing %q: %v", path, err)
 		}
-
+		tw.Flush()
 		fmt.Fprintf(os.Stderr, ">> TOTAL %d cookies; kept %d, discarded %d\n\n",
 			nKept+nDiscarded, nKept, nDiscarded)
 	}
 }
 
-func vlog(msg string, args ...interface{}) {
+func vlog(msg string) {
 	if *doVerbose {
-		fmt.Fprintf(os.Stderr, msg, args...)
+		fmt.Fprint(tw, msg)
 	}
+}
+
+func message(emo string, ck cookies.C, reason string) string {
+	args := []string{" " + emo, ck.Domain, ck.Name}
+	if reason != "" {
+		args = append(args, reason)
+	}
+	return strings.Join(args, "\t") + "\n"
 }
