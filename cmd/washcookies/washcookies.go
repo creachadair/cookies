@@ -141,9 +141,6 @@ func vlog(msg string) {
 }
 
 func message(emo string, ck cookies.C, reason string) string {
-	args := []string{" " + emo, ck.Domain, ck.Name}
-	if reason != "" {
-		args = append(args, reason)
-	}
+	args := []string{" " + emo, ck.Domain, ck.Name, reason}
 	return strings.Join(args, "\t") + "\n"
 }
