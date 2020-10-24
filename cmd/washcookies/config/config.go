@@ -91,6 +91,7 @@ type Rule struct {
 	Tag     string // one of "+", "-", "!"
 	Sep     string
 	Clauses []Clause
+	Reason  string
 }
 
 // Match reports whether r matches the given cookie.
@@ -208,6 +209,10 @@ func parseRule(line string) (Rule, error) {
 		switch c.Field {
 		case "domain", "path", "name", "value":
 			// OK, valid field name
+		case "reason":
+			// OK, explanatory comment
+			out.Reason = c.Arg
+			continue
 		default:
 			return out, fmt.Errorf("unknown field %q", c.Field)
 		}
