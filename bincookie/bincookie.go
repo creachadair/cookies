@@ -58,6 +58,7 @@
 //   4     | uint32 LE  | cookie count (nc)
 //  *4 [i] | uint32 LE  | cookie i offset; *repeat nc times
 //   4     | uint32=0   | footer (value 0)
+//   ...   | (cookie)   | cookie records
 //
 // Each cookie has the following format:
 //
