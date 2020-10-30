@@ -99,7 +99,7 @@ func main() {
 	}
 
 	if *doDryRun {
-		fmt.Fprint(os.Stderr, "🦺 This is a dry run; no changes will be made\n\n")
+		fmt.Fprint(os.Stderr, "☂️  This is a dry run; no changes will be made\n\n")
 	}
 
 	for _, path := range cfg.Files {
