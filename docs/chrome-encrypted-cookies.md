@@ -60,7 +60,7 @@ The encrypted portion of the packet (n+ p) contains a multiple of 16 bytes. If n
 
 ### Padding
 
-Before encryption, p bytes of padding are added to the plaintext value to ensure a multiple of 16 bytes. At least one byte of padding is always added, so if the value is already a multiple of 16 bytes, p=16 additional are added. Each padding byte has the value p, so if p=5, the padding is the 5-byte sequence [5, 5, 5, 5, 5].
+The encrypted value is padded as per PCKD#5: Before encryption, p bytes of padding are added to the plaintext value to ensure a multiple of 16 bytes. At least one byte of padding is always added, so if the value is already a multiple of 16 bytes, p=16 additional are added. Each padding byte has the value p, so if p=5, the padding is the 5-byte sequence [5, 5, 5, 5, 5].
 
 After decryption, the padding must be removed, and it can be used to verify that the decryption key was correct. The final byte of the decrypted packet must be a padding byte with value 1 ≤ p ≤ 16, and the last p bytes of the packet must contain the value p. Otherwise, the decryption key can be assumed to be incorrect.
 
