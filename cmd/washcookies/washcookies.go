@@ -105,7 +105,10 @@ func main() {
 	for _, path := range cfg.Files {
 		path = os.ExpandEnv(path)
 		s, err := config.OpenStore(path)
-		if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Skipping %q, file not found", path)
+			continue
+		} else if err != nil {
 			log.Fatalf("Opening %q: %v", path, err)
 		}
 		fmt.Fprintf(os.Stderr, "Scanning %q\n", path)
