@@ -94,7 +94,7 @@ type ScanFunc func(Editor) (Action, error)
 type Store interface {
 	// Scan calls f for each cookie in the store.
 	//
-	// If f repots an error, scanning stops and that error is returned to the
+	// If f reports an error, scanning stops and that error is returned to the
 	// caller of Scan. Otherwise, the cookie is handled according to the Action
 	// reported by f.
 	//
