@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package config parses the text config file format forthe washcookies tool.
+// Package config parses the text config file format for the washcookies tool.
 //
 // Blank lines and comments prefixed by "#" are ignored, except as described
 // under "Files" below.  Otherwise each non-blank line specifies a rule in the
