@@ -32,8 +32,8 @@
 //
 // The Checksum field of a file is populated when the file is parsed, and is
 // updated when the file is written. When constructing a file from scratch, it
-// is safe to leave the cheksum set to zero; after a successful write, the file
-// is updated with the correct checksum value.
+// is safe to leave the checksum set to zero; after a successful write, the
+// file is updated with the correct checksum value.
 //
 // File format
 //
