@@ -67,7 +67,9 @@ func init() {
 		fmt.Fprintf(os.Stderr, `Usage: %s [options] [cookie-file...]
 
 Edit browser cookies to remove any that do not match the specified
-policy rules.
+policy rules. For a description of the configuration file format, see:
+
+  https://godoc.org/github.com/creachadair/cookies/cmd/washcookies/config
 
 If cookie files are named on the commmand line, they are processed
 in preference to any files named in the configuration file.
