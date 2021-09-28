@@ -22,7 +22,8 @@
 // Otherwise, if any Deny rule matches the cookie, it is discarded.
 // Otherwise, if no Allow rule matches the cookie, it is discarded.
 //
-// See the config package for a description of the config file format.
+// For a description of the configuration file format, see
+//   https://godoc.org/github.com/creachadair/cookies/cmd/washcookies/config
 //
 // Examples
 //

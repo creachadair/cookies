@@ -53,6 +53,12 @@
 // If the key and operator are omitted, "domain" and "@" are assumed.  The "@"
 // operator does case-insensitive string comparison, but if the argument starts
 // with a period "." then it matches if the argument is a suffix of the value.
+//
+// Matching
+//
+// If a cookie is matched by any Keep ("!") rule, it is explicitly retained.
+// Otherwise, if any Deny ("-") rule matches the cookie, it is discarded.
+// Otherwise, if no Allow ("+") rule matches the cookie, it is discarded.
 package config
 
 import (
