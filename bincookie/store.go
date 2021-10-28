@@ -17,7 +17,7 @@ package bincookie
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 
 	"github.com/creachadair/atomicfile"
 	"github.com/creachadair/cookies"
@@ -25,7 +25,7 @@ import (
 
 // Open opens a bincookie file and returns a Store containing its data.
 func Open(path string) (*Store, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

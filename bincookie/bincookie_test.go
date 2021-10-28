@@ -19,7 +19,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -46,7 +45,7 @@ func TestManual(t *testing.T) {
 	}
 
 	// Read the raw bytes of the file for comparison purposes.
-	data, err := ioutil.ReadFile(*inputFile)
+	data, err := os.ReadFile(*inputFile)
 	if err != nil {
 		t.Fatalf("Reading input: %v", err)
 	}
