@@ -6,7 +6,7 @@ require (
 	crawshaw.io/sqlite v0.3.2
 	github.com/creachadair/atomicfile v0.2.4
 	github.com/google/go-cmp v0.5.7
-	golang.org/x/crypto v0.0.0-20220307211146-efcb8507fb70
+	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
 )
 
 require golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
