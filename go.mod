@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	crawshaw.io/sqlite v0.3.2
-	github.com/creachadair/atomicfile v0.2.4
+	github.com/creachadair/atomicfile v0.2.5
 	github.com/google/go-cmp v0.5.7
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 )
