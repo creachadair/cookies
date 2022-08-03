@@ -18,43 +18,43 @@
 // under "Files" below.  Otherwise each non-blank line specifies a rule in the
 // following format:
 //
-//   <f>{<sep><field><op><arg>}+
+//	<f>{<sep><field><op><arg>}+
 //
-//   f     -- "+" for Allow, "-" for Deny, "!" for Keep
-//   sep   -- the separator character for criteria
-//   field -- the name of a cookie field (see "Fields")
-//   op    -- a comparison operator (see "Operators")
-//   arg   -- an argument for comparison (possibly empty)
+//	f     -- "+" for Allow, "-" for Deny, "!" for Keep
+//	sep   -- the separator character for criteria
+//	field -- the name of a cookie field (see "Fields")
+//	op    -- a comparison operator (see "Operators")
+//	arg   -- an argument for comparison (possibly empty)
 //
-// Files
+// # Files
 //
 // Comment lines that begin with "#=" are treated as the pathnames of files to
 // process. Shell variables such as $HOME are expanded.
 //
-// Fields
+// # Fields
 //
 // Each cookie has the following fields:
 //
-//   domain -- the host or domain for which the cookie is delivered
-//   path   -- the path for which the cookie is delivered
-//   name   -- the name of the cookie
-//   value  -- the content of the cookie
+//	domain -- the host or domain for which the cookie is delivered
+//	path   -- the path for which the cookie is delivered
+//	name   -- the name of the cookie
+//	value  -- the content of the cookie
 //
-// Operators
+// # Operators
 //
 // The operators are:
 //
-//   =  -- case-insensitive string equality
-//   ?  -- test for key existence in the cookie
-//   ~  -- regular expression search (RE2)
-//   @  -- domain-name string matching
+//	=  -- case-insensitive string equality
+//	?  -- test for key existence in the cookie
+//	~  -- regular expression search (RE2)
+//	@  -- domain-name string matching
 //
 // Any operator may be prefixed with '!' to negate the sense of the comparison.
 // If the key and operator are omitted, "domain" and "@" are assumed.  The "@"
 // operator does case-insensitive string comparison, but if the argument starts
 // with a period "." then it matches if the argument is a suffix of the value.
 //
-// Matching
+// # Matching
 //
 // If a cookie is matched by any Keep ("!") rule, it is explicitly retained.
 // Otherwise, if any Deny ("-") rule matches the cookie, it is discarded.

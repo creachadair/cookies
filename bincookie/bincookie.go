@@ -20,87 +20,86 @@
 //
 // To parse a file:
 //
-//     f, err := bincookie.ParseFile(fileData)
+//	f, err := bincookie.ParseFile(fileData)
 //
 // A file contains a number of pages, each of which contains one or more cookie
 // records. A file can be modified and then written back:
 //
-//     hack(f)
-//     if _, err := f.WriteTo(outputFile); err != nil {
-//        log.Fatalf("Writing cookies: %v", err)
-//     }
+//	hack(f)
+//	if _, err := f.WriteTo(outputFile); err != nil {
+//	   log.Fatalf("Writing cookies: %v", err)
+//	}
 //
 // The Checksum field of a file is populated when the file is parsed, and is
 // updated when the file is written. When constructing a file from scratch, it
 // is safe to leave the checksum set to zero; after a successful write, the
 // file is updated with the correct checksum value.
 //
-// File format
+// # File format
 //
 // The binary file format has the following structure:
 //
-//   Bytes | Format     | Description
-//  -------|------------|----------------------------------------------
-//   4     | text       | magic number ('cook')
-//   4     | uint32 BE  | page count (np)
-//  *4 [i] | uint32 BE  | page i data size S, bytes; *repeat np times
-//  *S [i] | bytes      | page i contents; *repeat np times
-//   4     | uint32 BE  | checksum (see below)
-//   4     | bytes      | footer (07 17 20 05 hex)
-//   4     | uint32 BE  | policy size, bytes (ps)
-//   ps    | bytes      | binary NSHTTPCookieAcceptPolicy message
+//	 Bytes | Format     | Description
+//	-------|------------|----------------------------------------------
+//	 4     | text       | magic number ('cook')
+//	 4     | uint32 BE  | page count (np)
+//	*4 [i] | uint32 BE  | page i data size S, bytes; *repeat np times
+//	*S [i] | bytes      | page i contents; *repeat np times
+//	 4     | uint32 BE  | checksum (see below)
+//	 4     | bytes      | footer (07 17 20 05 hex)
+//	 4     | uint32 BE  | policy size, bytes (ps)
+//	 ps    | bytes      | binary NSHTTPCookieAcceptPolicy message
 //
 // Each page has the following format:
 //
-//   Bytes | Format     | Description
-//  -------|------------|----------------------------------------------
-//   4     | bytes      | magic number (00 00 01 00 hex)
-//   4     | uint32 LE  | cookie count (nc)
-//  *4 [i] | uint32 LE  | cookie i offset; *repeat nc times
-//   4     | uint32=0   | footer (value 0)
-//   ...   | (cookie)   | cookie records
+//	 Bytes | Format     | Description
+//	-------|------------|----------------------------------------------
+//	 4     | bytes      | magic number (00 00 01 00 hex)
+//	 4     | uint32 LE  | cookie count (nc)
+//	*4 [i] | uint32 LE  | cookie i offset; *repeat nc times
+//	 4     | uint32=0   | footer (value 0)
+//	 ...   | (cookie)   | cookie records
 //
 // Each cookie has the following format:
 //
-//   Bytes | Format     | Description
-//  -------|------------|----------------------------------------------
-//   4     | uint32 LE  | cookie record size, bytes (incl. size field)
-//   4     | uint32 LE  | unknown meaning; usually zero
-//   4     | uint32 LE  | flag bitmap (see "Flags" below)
-//   4     | uint32 LE  | unknown meaning; usually zero
-//   4     | uint32 LE  | offset of URL string
-//   4     | uint32 LE  | offset of name string
-//   4     | uint32 LE  | offset of path string
-//   4     | uint32 LE  | offset of value string
-//   8     | uint64=0   | end marker (value 0)
-//   8     | float64 LE | expires; seconds since 01-Jan-2001 00:00:00 UTC
-//   8     | float64 LE | created; seconds since 01-Jan-2001 00:00:00 UTC
-//   nd    | strings    | NUL-terminated strings for field values
+//	 Bytes | Format     | Description
+//	-------|------------|----------------------------------------------
+//	 4     | uint32 LE  | cookie record size, bytes (incl. size field)
+//	 4     | uint32 LE  | unknown meaning; usually zero
+//	 4     | uint32 LE  | flag bitmap (see "Flags" below)
+//	 4     | uint32 LE  | unknown meaning; usually zero
+//	 4     | uint32 LE  | offset of URL string
+//	 4     | uint32 LE  | offset of name string
+//	 4     | uint32 LE  | offset of path string
+//	 4     | uint32 LE  | offset of value string
+//	 8     | uint64=0   | end marker (value 0)
+//	 8     | float64 LE | expires; seconds since 01-Jan-2001 00:00:00 UTC
+//	 8     | float64 LE | created; seconds since 01-Jan-2001 00:00:00 UTC
+//	 nd    | strings    | NUL-terminated strings for field values
 //
 // The field values for a cookie may be packed in any order.
 //
-// Checksum
+// # Checksum
 //
 // The checksum is computed over the binary encoding of each page.  The
 // checksum for a page is the integer sum of the bytes at offset multiples of 4
 // (0, 4, 8, ...). The checksum of the file is the sum of the page checksums.
 //
-// Flags
+// # Flags
 //
 // The lower-order 3 bits of the flags are a bitmap of Boolean flags:
 //
-//    Bit   Description
-//    0     Secure
-//    1     (unknown)
-//    2     HTTPOnly
+//	Bit   Description
+//	0     Secure
+//	1     (unknown)
+//	2     HTTPOnly
 //
 // The next three bits (3-5) describe the SameSite policy for the cookie:
 //
-//    Value     Description
-//    4 (0b100) None (no restrictions; also the default)
-//    5 (0b101) Lax
-//    7 (0b111) Strict
-//
+//	Value     Description
+//	4 (0b100) None (no restrictions; also the default)
+//	5 (0b101) Lax
+//	7 (0b111) Strict
 package bincookie
 
 import (

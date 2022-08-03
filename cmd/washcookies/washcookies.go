@@ -23,22 +23,22 @@
 // Otherwise, if no Allow rule matches the cookie, it is discarded.
 //
 // For a description of the configuration file format, see
-//   https://godoc.org/github.com/creachadair/cookies/cmd/washcookies/config
 //
-// Examples
+//	https://godoc.org/github.com/creachadair/cookies/cmd/washcookies/config
+//
+// # Examples
 //
 // Accept all cookies from host names ending in "banksite.com":
 //
-//    + .banksite.com
+//   - .banksite.com
 //
 // Reject all Google Analytics cookies:
 //
-//    - name~^__utm[abvz]$
+//   - name~^__utm[abvz]$
 //
 // Accept cookies from somehost.com, but not "foo.somehost.com":
 //
-//    + .somehost.com domain!=foo.somehost.com
-//
+//   - .somehost.com domain!=foo.somehost.com
 package main
 
 import (
