@@ -1,6 +1,6 @@
 module github.com/creachadair/cookies
 
-go 1.17
+go 1.18
 
 require (
 	crawshaw.io/sqlite v0.3.2
