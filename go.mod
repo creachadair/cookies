@@ -6,5 +6,5 @@ require (
 	crawshaw.io/sqlite v0.3.2
 	github.com/creachadair/atomicfile v0.2.7
 	github.com/google/go-cmp v0.5.9
-	golang.org/x/crypto v0.0.0-20221010152910-d6f0a8c073c2
+	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a
 )
