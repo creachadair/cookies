@@ -194,7 +194,7 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 
 // dropCookie deletes c from the database.
 func (s *Store) dropCookie(tx *sql.Tx, c *Cookie) error {
-	_, err := tx.Exec(dropCookieStmt, sql.Named("$rowid", c.rowID))
+	_, err := tx.Exec(dropCookieStmt, sql.Named("rowid", c.rowID))
 	return err
 }
 
@@ -214,16 +214,16 @@ func (s *Store) writeCookie(tx *sql.Tx, c *Cookie) error {
 	query = fmt.Sprintf(writeCookieStmt, column)
 
 	_, err := tx.Exec(query,
-		sql.Named("$rowid", c.rowID),
-		sql.Named("$name", c.Name),
-		sql.Named("$host", c.Domain),
-		sql.Named("$path", c.Path),
-		sql.Named("$expires", timeToTimestamp(c.Expires)),
-		sql.Named("$created", timeToTimestamp(c.Created)),
-		sql.Named("$secure", boolToInt(c.Flags.Secure)),
-		sql.Named("$httponly", boolToInt(c.Flags.HTTPOnly)),
-		sql.Named("$samesite", encodeSitePolicy(c.SameSite)),
-		sql.Named("$value", value),
+		sql.Named("rowid", c.rowID),
+		sql.Named("name", c.Name),
+		sql.Named("host", c.Domain),
+		sql.Named("path", c.Path),
+		sql.Named("expires", timeToTimestamp(c.Expires)),
+		sql.Named("created", timeToTimestamp(c.Created)),
+		sql.Named("secure", boolToInt(c.Flags.Secure)),
+		sql.Named("httponly", boolToInt(c.Flags.HTTPOnly)),
+		sql.Named("samesite", encodeSitePolicy(c.SameSite)),
+		sql.Named("value", value),
 	)
 	return err
 }
