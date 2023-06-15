@@ -52,6 +52,9 @@ import (
 
 	"github.com/creachadair/cookies"
 	"github.com/creachadair/cookies/cmd/washcookies/config"
+
+	// Import SQLite3 driver for database/sql.
+	_ "modernc.org/sqlite"
 )
 
 var (
