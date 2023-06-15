@@ -20,6 +20,8 @@ import (
 
 	"github.com/creachadair/cookies"
 	"github.com/creachadair/cookies/chromedb"
+
+	_ "modernc.org/sqlite"
 )
 
 var (

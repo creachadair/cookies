@@ -16,12 +16,11 @@
 package chromedb
 
 import (
-	"encoding/hex"
+	"database/sql"
 	"fmt"
 	"runtime"
 	"time"
 
-	"crawshaw.io/sqlite"
 	"github.com/creachadair/cookies"
 )
 
@@ -36,7 +35,7 @@ FROM cookies;`
 	writeCookieStmt = `
 UPDATE cookies SET
   name = $name,
-  %[1]s = %[2]s,
+  %[1]s = $value,
   host_key = $host,
   path = $path,
   expires_utc = $expires,
@@ -54,13 +53,13 @@ WHERE rowid = $rowid;`
 
 // Open opens the Chrome cookie database at the specified path.
 func Open(path string, opts *Options) (*Store, error) {
-	conn, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READWRITE)
+	db, err := sql.Open(opts.driver(), path)
 	if err != nil {
 		return nil, err
 	}
 	return &Store{
-		conn: conn,
-		key:  opts.encryptionKey(),
+		db:  db,
+		key: opts.encryptionKey(),
 	}, nil
 }
 
@@ -91,21 +90,28 @@ func (o *Options) encryptionKey() []byte {
 	return encryptionKey(o.Passphrase, iter)
 }
 
+func (*Options) driver() string { return "sqlite" }
+
 // A Store connects to a collection of cookies stored in an SQLite database
 // using the Google Chrome cookie schema.
 type Store struct {
-	conn *sqlite.Conn
-	key  []byte // encryption key, or nil
+	db  *sql.DB
+	key []byte // encryption key, or nil
 }
 
 // Scan satisfies part of the cookies.Store interface.
-func (s *Store) Scan(f cookies.ScanFunc) (err error) {
+func (s *Store) Scan(f cookies.ScanFunc) error {
 	cs, err := s.readCookies()
 	if err != nil {
 		return err
 	}
 
-	defer s.begin(&err)()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	for _, c := range cs {
 		act, err := f(c)
 		if err != nil {
@@ -116,18 +122,18 @@ func (s *Store) Scan(f cookies.ScanFunc) (err error) {
 			continue
 
 		case cookies.Update:
-			if err := s.writeCookie(c); err != nil {
+			if err := s.writeCookie(tx, c); err != nil {
 				return err
 			}
 		case cookies.Discard:
-			if err := s.dropCookie(c); err != nil {
+			if err := s.dropCookie(tx, c); err != nil {
 				return err
 			}
 		default:
 			return fmt.Errorf("unknown action %v", act)
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 // Commit satisfies part of the cookies.Store interface.
@@ -136,32 +142,29 @@ func (s *Store) Commit() error { return nil }
 
 // readCookies reads all the cookies in the database.
 func (s *Store) readCookies() ([]*Cookie, error) {
-	stmt, err := s.conn.Prepare(readCookiesStmt)
+	rows, err := s.db.Query(readCookiesStmt)
 	if err != nil {
 		return nil, err
 	}
-	stmt.Reset()
 
 	var cs []*Cookie
-	for {
-		ok, err := stmt.Step()
-		if err != nil {
+	for rows.Next() {
+		var rowID, expiresUTC, creationUTC, isSecure, isHTTPOnly, sameSite int64
+		var name, value, hostKey, path string
+		var encValue []byte
+		if err := rows.Scan(&rowID, &name, &value, &encValue, &hostKey, &path,
+			&expiresUTC, &creationUTC, &isSecure, &isHTTPOnly, &sameSite); err != nil {
+			rows.Close()
 			return nil, err
-		} else if !ok {
-			break
 		}
 
-		value := stmt.GetText("value")
-
 		// If the value is empty, check for an encrypted value.
-		if value == "" && stmt.GetLen("encrypted_value") != 0 {
+		if value == "" && len(encValue) != 0 {
 			// If we don't have an encryption key, mark the value.
 			if len(s.key) == 0 {
 				value = "[ENCRYPTED]"
 			} else {
-				buf := make([]byte, stmt.GetLen("encrypted_value"))
-				stmt.GetBytes("encrypted_value", buf)
-				dec, err := decryptValue(s.key, buf)
+				dec, err := decryptValue(s.key, encValue)
 				if err != nil {
 					return nil, fmt.Errorf("decrypting value: %w", err)
 				}
@@ -171,84 +174,57 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 
 		cs = append(cs, &Cookie{
 			C: cookies.C{
-				Name:    stmt.GetText("name"),
+				Name:    name,
 				Value:   value,
-				Domain:  stmt.GetText("host_key"),
-				Path:    stmt.GetText("path"),
-				Expires: timestampToTime(stmt.GetInt64("expires_utc")),
-				Created: timestampToTime(stmt.GetInt64("creation_utc")),
+				Domain:  hostKey,
+				Path:    path,
+				Expires: timestampToTime(expiresUTC),
+				Created: timestampToTime(creationUTC),
 				Flags: cookies.Flags{
-					Secure:   stmt.GetInt64("is_secure") != 0,
-					HTTPOnly: stmt.GetInt64("is_httponly") != 0,
+					Secure:   isSecure != 0,
+					HTTPOnly: isHTTPOnly != 0,
 				},
-				SameSite: decodeSitePolicy(stmt.GetInt64("samesite")),
+				SameSite: decodeSitePolicy(sameSite),
 			},
-			rowID: stmt.GetInt64("rowid"),
+			rowID: rowID,
 		})
 	}
 	return cs, nil
 }
 
-// begin begins a transaction and returns a function to finish that
-// transaction. If *err == nil, the transaction is committed; otherwise the
-// transaction is rolled back.
-func (s *Store) begin(err *error) func() {
-	stmt := s.conn.Prep("BEGIN TRANSACTION;")
-	stmt.Step()
-	return func() {
-		if *err == nil {
-			s.conn.Prep("COMMIT;").Step()
-		} else {
-			s.conn.Prep("ROLLBACK;").Step()
-		}
-	}
-}
-
 // dropCookie deletes c from the database.
-func (s *Store) dropCookie(c *Cookie) error {
-	stmt, err := s.conn.Prepare(dropCookieStmt)
-	if err != nil {
-		return err
-	}
-	stmt.Reset()
-	stmt.SetInt64("$rowid", c.rowID)
-	_, err = stmt.Step()
+func (s *Store) dropCookie(tx *sql.Tx, c *Cookie) error {
+	_, err := tx.Exec(dropCookieStmt, sql.Named("$rowid", c.rowID))
 	return err
 }
 
-// hexString encodes a binary blob as a SQL hex string literal, X'....'.
-func hexString(data []byte) string { return `X'` + hex.EncodeToString(data) + `'` }
-
 // writeCookie writes the current state of c to the store.
-func (s *Store) writeCookie(c *Cookie) error {
-	var query string
+func (s *Store) writeCookie(tx *sql.Tx, c *Cookie) error {
+	var column, query string
+	var value any
 	if len(s.key) == 0 {
-		query = fmt.Sprintf(writeCookieStmt, "value", "$value")
+		column = "value"
+		value = c.Value
 	} else if enc, err := encryptValue(s.key, []byte(c.Value)); err != nil {
 		return fmt.Errorf("encrypting value: %w", err)
 	} else {
-		query = fmt.Sprintf(writeCookieStmt, "encrypted_value", hexString(enc))
+		column = "encrypted_value"
+		value = enc
 	}
+	query = fmt.Sprintf(writeCookieStmt, column)
 
-	stmt, err := s.conn.Prepare(query)
-	if err != nil {
-		return err
-	}
-	stmt.Reset()
-	stmt.SetInt64("$rowid", c.rowID)
-	stmt.SetText("$name", c.Name)
-	stmt.SetText("$host", c.Domain)
-	stmt.SetText("$path", c.Path)
-	stmt.SetInt64("$expires", timeToTimestamp(c.Expires))
-	stmt.SetInt64("$created", timeToTimestamp(c.Created))
-	stmt.SetInt64("$secure", boolToInt(c.Flags.Secure))
-	stmt.SetInt64("$httponly", boolToInt(c.Flags.HTTPOnly))
-	stmt.SetInt64("$samesite", encodeSitePolicy(c.SameSite))
-	if len(s.key) == 0 {
-		stmt.SetText("$value", c.Value)
-	}
-
-	_, err = stmt.Step()
+	_, err := tx.Exec(query,
+		sql.Named("$rowid", c.rowID),
+		sql.Named("$name", c.Name),
+		sql.Named("$host", c.Domain),
+		sql.Named("$path", c.Path),
+		sql.Named("$expires", timeToTimestamp(c.Expires)),
+		sql.Named("$created", timeToTimestamp(c.Created)),
+		sql.Named("$secure", boolToInt(c.Flags.Secure)),
+		sql.Named("$httponly", boolToInt(c.Flags.HTTPOnly)),
+		sql.Named("$samesite", encodeSitePolicy(c.SameSite)),
+		sql.Named("$value", value),
+	)
 	return err
 }
 
