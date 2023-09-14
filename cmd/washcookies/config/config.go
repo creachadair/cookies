@@ -73,6 +73,7 @@ import (
 	"github.com/creachadair/cookies"
 	"github.com/creachadair/cookies/bincookie"
 	"github.com/creachadair/cookies/chromedb"
+	"github.com/creachadair/cookies/firefox"
 )
 
 // OpenStore opens a cookie store for the specified path. The type of the
@@ -84,6 +85,9 @@ func OpenStore(path string) (cookies.Store, error) {
 	p := strings.ToLower(path)
 	if strings.Contains(p, "google") && filepath.Base(p) == "cookies" {
 		return chromedb.Open(path, nil)
+	}
+	if strings.Contains(p, "firefox") && filepath.Base(p) == "cookies.sqlite" {
+		return firefox.Open(path, nil)
 	}
 	return nil, errors.New("unknown file type")
 }
