@@ -56,7 +56,7 @@ An encrypted value consists of a data packet that is encrypted with AES-128 in C
 | n     | value                  | Payload (encrypted)             |
 | p     | padding                | Padding (encrypted), 1–16 bytes |
 
-The encrypted portion of the packet (n+ p) contains a multiple of 16 bytes. If n is a multiple of 16, p = 16; otherwise 1 ≤ p ≤ 15.
+The encrypted portion of the packet (n + p) contains a multiple of 16 bytes. If n is a multiple of 16, p = 16; otherwise 1 ≤ p ≤ 15.
 
 ### Padding
 
@@ -71,3 +71,7 @@ Encryption and decryption are performed using AES-128 in cipher-block chaining (
 ## Key Generation
 
 The 16-byte AES-128 encryption key is generated using the [PBKDF2 (RFC 2898)](https://tools.ietf.org/html/rfc2898) algorithm from a user-provided passphrase. The key generation salt is the fixed string `saltysalt`. On macOS, Chrome uses 1003 iterations of the key generation algorithm; on Linux it uses 1 iteration. I don't know what it does on Windows.
+
+On macOS, Chrome stores the encryption passphrase in the user's login keychain under "Chrome Safe Storage". The passphrase is base64-encoded but is used directly in its base64-encoded form.
+
+Older versions of Chrome and Chromium on Linux used the fixed passphrase `peanuts`, but more recent versions use the Gnome keyring.
