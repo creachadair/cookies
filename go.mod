@@ -7,8 +7,8 @@ toolchain go1.21.6
 require (
 	github.com/creachadair/atomicfile v0.3.3
 	github.com/google/go-cmp v0.6.0
-	golang.org/x/crypto v0.19.0
-	modernc.org/sqlite v1.29.0
+	golang.org/x/crypto v0.20.0
+	modernc.org/sqlite v1.29.2
 )
 
 require (
