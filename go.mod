@@ -1,8 +1,6 @@
 module github.com/creachadair/cookies
 
-go 1.21
-
-toolchain go1.21.6
+go 1.22
 
 require (
 	github.com/creachadair/atomicfile v0.3.4
