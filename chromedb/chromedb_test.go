@@ -27,6 +27,7 @@ import (
 var (
 	inputFile = flag.String("input", "", "Input Chrome cookie database")
 	dbSecret  = flag.String("passphrase", "", "Passphrase for encrypted values")
+	doUpdate  = flag.Bool("update", false, "Update cookies in-place")
 )
 
 func TestManual(t *testing.T) {
@@ -51,7 +52,11 @@ func TestManual(t *testing.T) {
 			numCookies,
 			c.Domain, c.Name, c.Value,
 			c.Flags.Secure, c.Flags.HTTPOnly, c.SameSite,
-			c.Created, c.Expires)
+			c.Created, c.Expires,
+		)
+		if *doUpdate {
+			return cookies.Update, nil
+		}
 		return cookies.Keep, nil
 	}); err != nil {
 		t.Fatalf("Scan failed: %v", err)

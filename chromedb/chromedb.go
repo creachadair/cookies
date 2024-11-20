@@ -16,7 +16,9 @@
 package chromedb
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"fmt"
 	"runtime"
 	"time"
@@ -30,7 +32,7 @@ SELECT
   rowid, name, value, encrypted_value, host_key, path,
   expires_utc, creation_utc,
   is_secure, is_httponly, samesite
-FROM cookies;`
+FROM cookies`
 
 	writeCookieStmt = `
 UPDATE cookies SET
@@ -43,12 +45,18 @@ UPDATE cookies SET
   is_secure = $secure,
   is_httponly = $httponly,
   samesite = $samesite
-WHERE rowid = $rowid;`
+WHERE rowid = $rowid`
 
-	dropCookieStmt = `DELETE FROM cookies WHERE rowid = $rowid;`
+	dropCookieStmt = `DELETE FROM cookies WHERE rowid = $rowid`
+
+	versionStmt = `SELECT value FROM meta WHERE key = 'version'`
 
 	// The Chrome timestamp epoch in seconds, 1601-01-01T00:00:00Z.
 	chromeEpoch = 11644473600
+
+	// The minimum version beyond which encrypted cookie values are prefixed
+	// with a SHA256 digest of the host key.
+	minHashKeyVersion = 24
 )
 
 // Open opens the Chrome cookie database at the specified path.
@@ -57,9 +65,18 @@ func Open(path string, opts *Options) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	row := db.QueryRow(versionStmt)
+	var version int
+	if err := row.Scan(&version); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			db.Close()
+			return nil, err
+		}
+	}
 	return &Store{
-		db:  db,
-		key: opts.encryptionKey(),
+		db:        db,
+		key:       opts.encryptionKey(),
+		dbVersion: version,
 	}, nil
 }
 
@@ -95,8 +112,9 @@ func (*Options) driver() string { return "sqlite" }
 // A Store connects to a collection of cookies stored in an SQLite database
 // using the Google Chrome cookie schema.
 type Store struct {
-	db  *sql.DB
-	key []byte // encryption key, or nil
+	db        *sql.DB
+	key       []byte // encryption key, or nil
+	dbVersion int    // from the meta table
 }
 
 // Scan satisfies part of the cookies.Store interface.
@@ -151,7 +169,7 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 	for rows.Next() {
 		var rowID, expiresUTC, creationUTC, isSecure, isHTTPOnly, sameSite int64
 		var name, value, hostKey, path string
-		var encValue []byte
+		var encValue, hostHash []byte
 		if err := rows.Scan(&rowID, &name, &value, &encValue, &hostKey, &path,
 			&expiresUTC, &creationUTC, &isSecure, &isHTTPOnly, &sameSite); err != nil {
 			rows.Close()
@@ -167,6 +185,12 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 				dec, err := decryptValue(s.key, encValue)
 				if err != nil {
 					return nil, fmt.Errorf("decrypting value: %w", err)
+				}
+
+				// Database versions ≥ 24 prefix the encrypted value with a SHA256
+				// of the host key.
+				if s.dbVersion >= minHashKeyVersion && len(dec) >= 32 {
+					dec, hostHash = dec[32:], dec[:32]
 				}
 				value = string(dec)
 			}
@@ -186,7 +210,8 @@ func (s *Store) readCookies() ([]*Cookie, error) {
 				},
 				SameSite: decodeSitePolicy(sameSite),
 			},
-			rowID: rowID,
+			rowID:    rowID,
+			hostHash: hostHash, // if present
 		})
 	}
 	return cs, nil
@@ -205,11 +230,18 @@ func (s *Store) writeCookie(tx *sql.Tx, c *Cookie) error {
 	if len(s.key) == 0 {
 		column = "value"
 		value = c.Value
-	} else if enc, err := encryptValue(s.key, []byte(c.Value)); err != nil {
-		return fmt.Errorf("encrypting value: %w", err)
 	} else {
-		column = "encrypted_value"
-		value = enc
+		vbytes := []byte(c.Value)
+		if s.dbVersion >= minHashKeyVersion {
+			hostHash := sha256.Sum256([]byte(c.Domain))
+			vbytes = append(hostHash[:], vbytes...)
+		}
+		if enc, err := encryptValue(s.key, vbytes); err != nil {
+			return fmt.Errorf("encrypting value: %w", err)
+		} else {
+			column = "encrypted_value"
+			value = enc
+		}
 	}
 	query = fmt.Sprintf(writeCookieStmt, column)
 
@@ -237,7 +269,8 @@ func (s *Store) writeCookie(tx *sql.Tx, c *Cookie) error {
 type Cookie struct {
 	cookies.C
 
-	rowID int64
+	rowID    int64
+	hostHash []byte // for versions > 23
 }
 
 // Get satisfies part of the cookies.Editor interface.
