@@ -58,6 +58,18 @@ An encrypted value consists of a data packet that is encrypted with AES-128 in C
 
 The encrypted portion of the packet (n + p) contains a multiple of 16 bytes. If n is a multiple of 16, p = 16; otherwise 1 ≤ p ≤ 15.
 
+In database versions ≥ 24, the payload is prefixed with a SHA256 digest of the `host_key` ("domain") field of the cookie, prior to encryption. This extends the payload by the 32 bytes of the digest. For example, if the value of the cookie is `apple pear plum` and the `host_key` is `.google.com`, then the plaintext payload is (in hex):
+
+                                                                          "apple pear plum"
+                                                                    vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+    5d59719991ce1e2237eef373ad1cc97eafbd4d9738f18d37d86e7816e1b4f6dc6170706c65207065617220706c756d
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       SHA256(".google.com")
+
+This digest must be present or the cookie will be rejected by Chrome. Versions ≤ 23 do not require this prefix. Note that the "database" version does not change the "content" version (`v10`); the database version is recorded in the `meta` table under the `version` key, e.g.,
+
+    select value from meta where key = 'version';
+
 ### Padding
 
 The encrypted value is padded as per PCKD#5: Before encryption, p bytes of padding are added to the plaintext value to ensure a multiple of 16 bytes. At least one byte of padding is always added, so if the value is already a multiple of 16 bytes, p=16 additional are added. Each padding byte has the value p, so if p=5, the padding is the 5-byte sequence [5, 5, 5, 5, 5].
