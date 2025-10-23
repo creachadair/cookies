@@ -1,7 +1,7 @@
-github.com/creachadair/atomicfile v0.3.8 h1:PyMIBZHZunTF+2+OSJCUg4XWO9nh6NwIacUBtF6tdg8=
-github.com/creachadair/atomicfile v0.3.8/go.mod h1:oZrfNyYdwMjCD+eKNqsnPmdnQ54z4ujOoYvNTZyuJ2A=
-github.com/creachadair/mds v0.24.1 h1:bzL4ItCtAUxxO9KkotP0PVzlw4tnJicAcjPu82v2mGs=
-github.com/creachadair/mds v0.24.1/go.mod h1:ArfS0vPHoLV/SzuIzoqTEZfoYmac7n9Cj8XPANHocvw=
+github.com/creachadair/atomicfile v0.4.0 h1:umZ+njabCI7eeMLWXFRuUy83iQSiA8qnUj8MH04pfbM=
+github.com/creachadair/atomicfile v0.4.0/go.mod h1:OyQCzy3n5KhEXHcHxSzZ7BbRt7QmeVkaiMJmtENydDI=
+github.com/creachadair/mds v0.25.6 h1:l1MkbdJmhqXTpm92VWYTb0/s0wsiZSKKc/VKU0lf2bA=
+github.com/creachadair/mds v0.25.6/go.mod h1:4hatI3hRM+qhzuAmqPRFvaBM8mONkS7nsLxkcuTYUIs=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=

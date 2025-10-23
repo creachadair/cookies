@@ -3,7 +3,7 @@ module github.com/creachadair/cookies
 go 1.24.0
 
 require (
-	github.com/creachadair/atomicfile v0.3.8
+	github.com/creachadair/atomicfile v0.4.0
 	github.com/google/go-cmp v0.7.0
 	golang.org/x/crypto v0.42.0
 	modernc.org/sqlite v1.39.0
