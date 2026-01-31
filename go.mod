@@ -6,7 +6,7 @@ require (
 	github.com/creachadair/atomicfile v0.4.0
 	github.com/google/go-cmp v0.7.0
 	golang.org/x/crypto v0.47.0
-	modernc.org/sqlite v1.44.0
+	modernc.org/sqlite v1.44.3
 )
 
 require (
@@ -17,7 +17,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	modernc.org/libc v1.67.4 // indirect
+	modernc.org/libc v1.67.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
