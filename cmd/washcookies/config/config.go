@@ -225,7 +225,7 @@ func parseRule(line string) (Rule, error) {
 		return Rule{}, fmt.Errorf("invalid rule tag %q", tag)
 	}
 	out := Rule{Tag: tag, Sep: sep}
-	for _, arg := range strings.Split(line[2:], sep) {
+	for arg := range strings.SplitSeq(line[2:], sep) {
 		c, err := parseClause(arg)
 		if err != nil {
 			return out, fmt.Errorf("invalid clause: %w", err)
