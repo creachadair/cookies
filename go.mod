@@ -6,7 +6,7 @@ require (
 	github.com/creachadair/atomicfile v0.4.1
 	github.com/google/go-cmp v0.7.0
 	golang.org/x/crypto v0.49.0
-	modernc.org/sqlite v1.47.0
+	modernc.org/sqlite v1.48.1
 )
 
 require (
