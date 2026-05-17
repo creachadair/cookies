@@ -52,7 +52,7 @@ func (s *Store) WriteTo(w io.Writer) (int64, error) {
 	return s.file.WriteTo(w)
 }
 
-// Scan implements part of the cookies.Store interface.
+// Scan implements part of the [cookies.Store] interface.
 func (s *Store) Scan(f cookies.ScanFunc) error {
 	for _, page := range s.file.Pages {
 		var out []*Cookie
@@ -81,7 +81,7 @@ func (s *Store) Scan(f cookies.ScanFunc) error {
 	return nil
 }
 
-// Commit implements part of the cookies.Store interface.
+// Commit implements part of the [cookies.Store] interface.
 func (s *Store) Commit() error {
 	if s.dirty {
 		f, err := atomicfile.New(s.path, 0600)

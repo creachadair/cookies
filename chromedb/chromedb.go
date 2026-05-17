@@ -117,7 +117,7 @@ type Store struct {
 	dbVersion int    // from the meta table
 }
 
-// Scan satisfies part of the cookies.Store interface.
+// Scan satisfies part of the [cookies.Store] interface.
 func (s *Store) Scan(f cookies.ScanFunc) error {
 	cs, err := s.readCookies()
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *Store) Scan(f cookies.ScanFunc) error {
 	return tx.Commit()
 }
 
-// Commit satisfies part of the cookies.Store interface.
+// Commit satisfies part of the [cookies.Store] interface.
 // In this implementation it is a no-op without error.
 func (s *Store) Commit() error { return nil }
 
@@ -273,10 +273,10 @@ type Cookie struct {
 	hostHash []byte // for versions > 23
 }
 
-// Get satisfies part of the cookies.Editor interface.
+// Get satisfies part of the [cookies.Editor] interface.
 func (c *Cookie) Get() cookies.C { return c.C }
 
-// Set satisfies part of the cookies.Editor interface.
+// Set satisfies part of the [cookies.Editor] interface.
 func (c *Cookie) Set(o cookies.C) error { c.C = o; return nil }
 
 // decodeSitePolicy maps a Chrome SameSite policy to the generic enum.

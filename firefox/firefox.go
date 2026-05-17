@@ -45,7 +45,7 @@ type Store struct {
 	db *sql.DB
 }
 
-// Scan implements part of the cookies.Store interface.
+// Scan implements part of the [cookies.Store] interface.
 func (s *Store) Scan(f cookies.ScanFunc) error {
 	cs, err := s.readCookies()
 	if err != nil {
@@ -84,7 +84,7 @@ func (s *Store) Scan(f cookies.ScanFunc) error {
 	return tx.Commit()
 }
 
-// Commit implements part of the cookies.Store interface.
+// Commit implements part of the [cookies.Store] interface.
 func (s *Store) Commit() error { return nil }
 
 type Cookie struct {
@@ -93,10 +93,10 @@ type Cookie struct {
 	id int64
 }
 
-// Get implements part of the cookies.Editor interface.
+// Get implements part of the [cookies.Editor] interface.
 func (c *Cookie) Get() cookies.C { return c.C }
 
-// Set implements part of the cookies.Editor interface.
+// Set implements part of the [cookies.Editor] interface.
 func (c *Cookie) Set(o cookies.C) error { c.C = o; return nil }
 
 func (s *Store) readCookies() ([]*Cookie, error) {
