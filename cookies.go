@@ -13,6 +13,18 @@
 // limitations under the License.
 
 // Package cookies reads and modifies browser cookies.
+//
+// # Overview
+//
+// This package represents each browser cookie as a [C] value, which is
+// storage-agnostic and captures the standard properties shared by all
+// browsers. To handle cookies from a specific browser, the caller must
+// implement the [Editor] interface to translate to and from this format.
+//
+// The [Store] interface is used to read and update the store of cookies, by
+// providing a Scan method that can be used to visit each cookie, examine and
+// possibly modify its contents, and decide whether to retain the cookie as it
+// was (Keep), update it (Update), or discard it (Discard).
 package cookies
 
 import "time"
@@ -68,7 +80,7 @@ type Editor interface {
 }
 
 // An Action specifies the disposition of a cookie processed by the callback to
-// the Scan method of a Store.
+// the Scan method of a [Store].
 type Action int
 
 // Values for the Action enumeration.
