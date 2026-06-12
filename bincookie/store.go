@@ -84,15 +84,10 @@ func (s *Store) Scan(f cookies.ScanFunc) error {
 // Commit implements part of the [cookies.Store] interface.
 func (s *Store) Commit() error {
 	if s.dirty {
-		f, err := atomicfile.New(s.path, 0600)
-		if err != nil {
+		return atomicfile.Tx(s.path, 0600, func(w io.Writer) error {
+			_, err := s.file.WriteTo(w)
 			return err
-		}
-		defer f.Cancel()
-		if _, err := s.file.WriteTo(f); err != nil {
-			return err
-		}
-		return f.Close()
+		})
 	}
 	return nil
 }
