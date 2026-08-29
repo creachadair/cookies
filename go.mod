@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/creachadair/atomicfile v0.4.2
+	github.com/creachadair/mds v0.29.2
 	github.com/google/go-cmp v0.7.0
 	golang.org/x/crypto v0.55.0
 	modernc.org/sqlite v1.56.0

@@ -52,6 +52,7 @@ import (
 
 	"github.com/creachadair/cookies"
 	"github.com/creachadair/cookies/cmd/washcookies/config"
+	"github.com/creachadair/mds/mstr"
 
 	// Import SQLite3 driver for database/sql.
 	_ "modernc.org/sqlite"
@@ -167,6 +168,14 @@ func vlog(msg string) {
 }
 
 func message(emo string, ck cookies.C, reason string) string {
-	args := []string{" " + emo, ck.Domain, ck.Name, reason}
+	args := []string{" " + emo, ck.Domain, displayName(ck.Name), reason}
 	return strings.Join(args, "\t") + "\n"
+}
+
+func displayName(name string) string {
+	const maxNameWidth = 50
+	if len(name) > maxNameWidth {
+		return mstr.Trunc(name, maxNameWidth) + " ..."
+	}
+	return name
 }
